@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画廊 | 林度摄影</title>
+    <meta name="description" content="自然风光与城市风光作品画廊。" />
+    <meta property="og:title" content="画廊 | 林度摄影" />
+    <meta property="og:description" content="自然风光与城市风光作品画廊。" />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0f0f10" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./gallery.html" aria-label="林度摄影首页">
+          <span class="logo" aria-hidden="true">◎</span>
+          <span class="brand-text">林度摄影</span>
+        </a>
+        <button class="nav-toggle" aria-label="打开菜单" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./gallery.html">画廊</a>
+          <a href="./stories.html">故事</a>
+          <a href="./about.html">简介</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="home">
+      <section class="hero" role="banner">
+        <div class="container hero-inner">
+          <h1>Between Light and Lines</h1>
+          <p>自然风光与城市风光 · 极简视角</p>
+        </div>
+        <div class="hero-bg" aria-hidden="true"></div>
+      </section>
+
+      <section id="portfolio" class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>画廊</h2>
+            <div class="filters" role="tablist" aria-label="分类筛选">
+              <button class="chip active" data-filter="all" role="tab" aria-selected="true">全部</button>
+              <button class="chip" data-filter="nature" role="tab" aria-selected="false">自然风光</button>
+              <button class="chip" data-filter="city" role="tab" aria-selected="false">城市风光</button>
+            </div>
+          </div>
+
+          <div class="gallery" id="gallery" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© <span id="year"></span> 林度摄影 Lindu Photography</p>
+        <div class="social">
+          <a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.behance.net" target="_blank" rel="noopener">Behance</a>
+          <a href="https://weibo.com" target="_blank" rel="noopener">Weibo</a>
+        </div>
+      </div>
+    </footer>
+
+    <div id="lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
+      <button class="lightbox-close" aria-label="关闭预览">×</button>
+      <img id="lightboxImage" alt="预览" />
+      <div id="lightboxInfo" class="lightbox-info"></div>
+      <button class="nav prev" aria-label="上一张">‹</button>
+      <button class="nav next" aria-label="下一张">›</button>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+  </html>
+
+

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>林度摄影 | Lindu Photography</title>
+    <meta name="description" content="林度摄影——人像、婚礼、商业与风光摄影作品集与服务介绍。" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta property="og:title" content="林度摄影 | Lindu Photography" />
+    <meta property="og:description" content="人像、婚礼、商业与风光摄影作品集与服务介绍。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80&auto=format&fit=crop" />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230f0f10'/%3E%3Cpath d='M50 20a30 30 0 1030 30A30 30 0 0050 20zm0 10a20 20 0 11-20 20A20 20 0 0150 30z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./gallery.html" aria-label="林度摄影首页">
+          <span class="logo" aria-hidden="true">◎</span>
+          <span class="brand-text">林度摄影</span>
+        </a>
+        <button class="nav-toggle" aria-label="打开菜单" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./gallery.html">画廊</a>
+          <a href="./stories.html">故事</a>
+          <a href="./about.html">简介</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="home">
+      <section class="hero" role="banner">
+        <div class="container hero-inner">
+          <h1>Between Light and Lines</h1>
+          <p>自然风光与城市风光 · 极简视角</p>
+          <a class="btn primary" href="./gallery.html">进入画廊</a>
+        </div>
+        <div class="hero-bg" aria-hidden="true"></div>
+      </section>
+      <!-- 首页作为引导页，直接指向三个页面，可按需继续丰富 -->
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© <span id="year"></span> 林度摄影 Lindu Photography</p>
+        <div class="social">
+          <a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.behance.net" target="_blank" rel="noopener">Behance</a>
+          <a href="https://weibo.com" target="_blank" rel="noopener">Weibo</a>
+        </div>
+      </div>
+    </footer>
+
+    <div id="lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
+      <button class="lightbox-close" aria-label="关闭预览">×</button>
+      <img id="lightboxImage" alt="预览" />
+      <div id="lightboxInfo" class="lightbox-info"></div>
+      <button class="nav prev" aria-label="上一张">‹</button>
+      <button class="nav next" aria-label="下一张">›</button>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+  </html>
+
+

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>故事 | 林度摄影</title>
+    <meta name="description" content="镜头背后的故事与拍摄随记。" />
+    <meta property="og:title" content="故事 | 林度摄影" />
+    <meta property="og:description" content="镜头背后的故事与拍摄随记。" />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0f0f10" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./gallery.html" aria-label="林度摄影首页">
+          <span class="logo" aria-hidden="true">◎</span>
+          <span class="brand-text">林度摄影</span>
+        </a>
+        <button class="nav-toggle" aria-label="打开菜单" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./gallery.html">画廊</a>
+          <a href="./stories.html">故事</a>
+          <a href="./about.html">简介</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section id="stories" class="section alt">
+        <div class="container">
+          <h2>镜头背后的故事</h2>
+          <div id="storiesFeed" class="feed">
+            <!-- JSON 渲染微博式卡片，以下为回退示例（默认折叠，仅显示标题+时间） -->
+            <article class="story-card collapsed">
+              <div class="head">
+                <div class="avatar">◎</div>
+                <h3 class="title">风起云涌的清晨</h3>
+                <div class="meta"><span>清晨</span></div>
+              </div>
+              <div class="body">在海边等了两个小时，只为等到第一束穿透云层的光。风把三脚架吹得发颤，但那一刻，海浪与云的层次在长曝里变得从容。</div>
+            </article>
+            <article class="story-card collapsed">
+              <div class="head">
+                <div class="avatar">◎</div>
+                <h3 class="title">城市的无眠与秩序</h3>
+                <div class="meta"><span>夜晚</span></div>
+              </div>
+              <div class="body">高架的车流是城市的脉搏。我把快门控制在 1/2 秒，让光轨像是城市书写出的注脚，秩序里有律动。</div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© <span id="year"></span> 林度摄影 Lindu Photography</p>
+        <div class="social">
+          <a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.behance.net" target="_blank" rel="noopener">Behance</a>
+          <a href="https://weibo.com" target="_blank" rel="noopener">Weibo</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+  </html>
+
+

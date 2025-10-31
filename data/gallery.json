@@ -1,0 +1,33 @@
+[
+  {
+    "category": "nature",
+    "src": "./assets/works/nature/云峦牧野之息.jpg",
+    "alt": "云峦牧野之息",
+    "caption": "云峦牧野之息"
+  },
+  {
+    "category": "nature",
+    "src": "./assets/works/nature/孤影凌虚之景.jpg",
+    "alt": "孤影凌虚之景",
+    "caption": "孤影凌虚之景"
+  },
+  {
+    "category": "nature",
+    "src": "./assets/works/nature/霞影覆原之柱.jpg",
+    "alt": "霞影覆原之柱",
+    "caption": "霞影覆原之柱"
+  },
+  {
+    "category": "city",
+    "src": "./assets/works/city/陆家嘴灯光秀2.jpg",
+    "alt": "陆家嘴灯光秀2",
+    "caption": "陆家嘴灯光秀2"
+  },
+  {
+    "category": "city",
+    "src": "./assets/works/city/雾锁连城2.jpg",
+    "alt": "雾锁连城2",
+    "caption": "雾锁连城2"
+  }
+]
+
