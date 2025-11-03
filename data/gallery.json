@@ -9,7 +9,8 @@
     "camera": "Hasselblad L2D-20c ",
     "iso": 400,
     "f": 2.8,
-    "shutter": "1/1600s"
+    "shutter": "1/1600s",
+    "focal": "12.24mm"
   }
 }
 
