@@ -1,33 +1,17 @@
 [
   {
-    "category": "nature",
-    "src": "./assets/works/nature/云峦牧野之息.jpg",
-    "alt": "云峦牧野之息",
-    "caption": "云峦牧野之息"
-  },
-  {
-    "category": "nature",
-    "src": "https://p.ipic.vip/ht2psu.jpeg",
-    "alt": "孤影凌虚之景",
-    "caption": "孤影凌虚之景"
-  },
-  {
-    "category": "nature",
-    "src": "./assets/works/nature/霞影覆原之柱.jpg",
-    "alt": "霞影覆原之柱",
-    "caption": "霞影覆原之柱"
-  },
-  {
-    "category": "city",
-    "src": "./assets/works/city/陆家嘴灯光秀2.jpg",
-    "alt": "陆家嘴灯光秀2",
-    "caption": "陆家嘴灯光秀2"
-  },
-  {
-    "category": "city",
-    "src": "./assets/works/city/雾锁连城2.jpg",
-    "alt": "雾锁连城2",
-    "caption": "雾锁连城2"
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762158106829_E44AA241-F19F-41A7-AA49-0E2CFA906447_1_105_c-拷贝.jpg",
+  "alt": "孤影凌虚之景",
+  "caption": "",
+  "location": "N33° 4' 34.747\" E101° 8' 54.247\" ",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 400,
+    "f": 2.8,
+    "shutter": "1/1600s"
   }
+}
+
 ]
 
