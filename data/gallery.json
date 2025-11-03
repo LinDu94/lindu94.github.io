@@ -12,7 +12,20 @@
     "shutter": "1/1600s",
     "focal": "12.24mm"
   }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762161237278_鎏峰映塔之境.jpg",
+  "alt": "鎏峰映塔之境",
+  "caption": "",
+  "location": "N37° 21' 19.566\" E97° 14' 59.122\"  德令哈市·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 400,
+    "f": 2.8,
+    "shutter": "1/400s",
+    "focal": "19.35mm"
+  }
 }
-
 ]
 
