@@ -12,7 +12,9 @@
     <meta property="og:image" content="https://p.ipic.vip/ht2psu.jpeg" />
     <link rel="preconnect" href="https://p.ipic.vip/ht2psu.jpeg" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230f0f10'/%3E%3Cpath d='M50 20a30 30 0 1030 30A30 30 0 0050 20zm0 10a20 20 0 11-20 20A20 20 0 0150 30z' fill='%23ffffff'/%3E%3C/svg%3E" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -59,7 +61,10 @@
 
     <div id="lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
       <button class="lightbox-close" aria-label="关闭预览">×</button>
-      <img id="lightboxImage" alt="预览" />
+      <div class="lightbox-content">
+        <img id="lightboxImage" alt="预览" />
+        <div id="lightboxMap" class="lightbox-map"></div>
+      </div>
       <div id="lightboxInfo" class="lightbox-info"></div>
       <button class="nav prev" aria-label="上一张">‹</button>
       <button class="nav next" aria-label="下一张">›</button>

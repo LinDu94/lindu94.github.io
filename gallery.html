@@ -10,6 +10,8 @@
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0f0f10" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -70,7 +72,10 @@
 
     <div id="lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
       <button class="lightbox-close" aria-label="关闭预览">×</button>
-      <img id="lightboxImage" alt="预览" />
+      <div class="lightbox-content">
+        <img id="lightboxImage" alt="预览" />
+        <div id="lightboxMap" class="lightbox-map"></div>
+      </div>
       <div id="lightboxInfo" class="lightbox-info"></div>
       <button class="nav prev" aria-label="上一张">‹</button>
       <button class="nav next" aria-label="下一张">›</button>

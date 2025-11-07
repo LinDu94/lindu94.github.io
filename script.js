@@ -499,6 +499,108 @@ if (document.readyState === 'loading') {
   setTimeout(initMapWhenReady, 200);
 }
 
+// 灯箱地图实例
+let lightboxMap = null;
+
+// 初始化灯箱中的地图
+async function initLightboxMap(location) {
+  const lightboxMapContainer = document.getElementById('lightboxMap');
+  if (!lightboxMapContainer) return;
+  
+  // 如果没有位置信息，隐藏地图
+  if (!location) {
+    lightboxMapContainer.classList.remove('has-location');
+    if (lightboxMap) {
+      lightboxMap.remove();
+      lightboxMap = null;
+    }
+    return;
+  }
+  
+  // 检查 Leaflet 是否已加载
+  if (typeof L === 'undefined' || !L.map) {
+    console.warn('Leaflet.js not loaded, cannot show map in lightbox');
+    lightboxMapContainer.classList.remove('has-location');
+    return;
+  }
+  
+  // 解析坐标
+  let coords = parseCoordinates(location);
+  
+  // 如果解析失败，尝试地理编码
+  if (!coords) {
+    const placeName = location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
+    if (placeName && geocodeCache[placeName]) {
+      const cached = geocodeCache[placeName];
+      if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+        coords = cached.coords;
+      }
+    }
+    
+    // 如果缓存中没有，进行地理编码
+    if (!coords) {
+      coords = await geocodeLocation(location);
+    }
+  }
+  
+  // 如果仍然没有坐标，隐藏地图
+  if (!coords) {
+    lightboxMapContainer.classList.remove('has-location');
+    if (lightboxMap) {
+      lightboxMap.remove();
+      lightboxMap = null;
+    }
+    return;
+  }
+  
+  // 显示地图容器
+  lightboxMapContainer.classList.add('has-location');
+  
+  // 如果地图已存在，更新位置
+  if (lightboxMap) {
+    lightboxMap.setView(coords, 13);
+    // 清除旧标记
+    lightboxMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) {
+        lightboxMap.removeLayer(layer);
+      }
+    });
+  } else {
+    // 创建新地图
+    lightboxMap = L.map(lightboxMapContainer, {
+      zoomControl: true,
+      scrollWheelZoom: false, // 禁用滚轮缩放，避免与页面滚动冲突
+      dragging: true,
+      touchZoom: true,
+      doubleClickZoom: true,
+      boxZoom: false,
+      keyboard: false
+    }).setView(coords, 13);
+    
+    // 添加地图图层
+    const mapProvider = await detectUserLocation();
+    const tileLayer = addMapTileLayer(mapProvider);
+    tileLayer.addTo(lightboxMap);
+    
+    // 确保地图正确渲染
+    setTimeout(() => {
+      if (lightboxMap) {
+        lightboxMap.invalidateSize();
+      }
+    }, 100);
+  }
+  
+  // 添加标记
+  const icon = L.divIcon({
+    className: 'photo-marker',
+    html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0b0c0d; box-shadow: 0 0 0 2px rgba(124,196,255,0.5);"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  
+  L.marker(coords, { icon: icon }).addTo(lightboxMap);
+}
+
 function initLightboxIfPresent() {
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightboxImage');
@@ -509,7 +611,7 @@ function initLightboxIfPresent() {
   if (!(lightbox && lightboxImg && closeBtn && prevBtn && nextBtn && cards.length)) return;
   let currentIndex = -1;
   const visibleCards = () => cards.filter((c) => c.style.display !== 'none');
-  function openLightbox(index) {
+  async function openLightbox(index) {
     const vc = visibleCards();
     if (!vc.length) return;
     currentIndex = (index + vc.length) % vc.length;
@@ -520,6 +622,10 @@ function initLightboxIfPresent() {
     const originalSrc = fig.dataset.originalSrc || getOriginalUrl(img.src);
     // 移除所有尺寸限制，显示原图
     lightboxImg.src = getOriginalUrl(originalSrc);
+    
+    // 初始化地图（如果有位置信息）
+    const location = fig.dataset.location;
+    await initLightboxMap(location);
     
     // 渲染灯箱标签
     if (lightboxInfo) {
@@ -602,6 +708,11 @@ function initLightboxIfPresent() {
     lightbox.classList.remove('open');
     lightbox.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    // 清理地图（可选，也可以保留）
+    // if (lightboxMap) {
+    //   lightboxMap.remove();
+    //   lightboxMap = null;
+    // }
   }
   function step(delta) { openLightbox(currentIndex + delta); }
   cards.forEach((card, i) => {
