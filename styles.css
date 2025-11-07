@@ -86,7 +86,7 @@ a { color: inherit; text-decoration: none; }
 /* 地图容器 */
 .photo-map-container {
   width: 100%;
-  height: 500px;
+
   margin: 32px 0;
   border-radius: 12px;
   overflow: hidden;
@@ -192,7 +192,8 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 640px) {
   .photo-map-container {
-    height: 400px;
+    height: calc(100vh - 160px); /* 减去 header/footer */
+    min-height: 500px;
   }
   .map-popup-photos {
     grid-template-columns: repeat(2, 1fr);
