@@ -106,16 +106,6 @@ function getOriginalUrl(url) {
 
 function renderCard(it) {
   const exif = it.exif;
-  const tags = [];
-  if (it.location) tags.push(`<span class="tag">📍 ${it.location}</span>`);
-  if (exif && exif.camera) tags.push(`<span class="tag">📷 ${exif.camera}</span>`);
-  if (exif && exif.lens) tags.push(`<span class="tag">🔭 ${exif.lens}</span>`);
-  const tech = [];
-  if (exif && exif.focal) tech.push(exif.focal);
-  if (exif && exif.aperture) tech.push(exif.aperture);
-  if (exif && exif.shutter) tech.push(exif.shutter);
-  if (exif && typeof exif.iso !== 'undefined') tech.push('ISO ' + exif.iso);
-  if (tech.length) tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
   
   // 生成压缩图URL（用于列表显示）
   const thumbnailUrl = getThumbnailUrl(it.src, 800);
@@ -132,14 +122,17 @@ function renderCard(it) {
     ['aperture', exif && exif.aperture],
     ['shutter', exif && exif.shutter],
     ['iso', exif && exif.iso],
+    ['f', exif && exif.f], // 光圈值（如果单独存在）
     ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
+  
+  // 提取位置名称（去除坐标部分）
+  const locationName = it.location ? it.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || it.location : '';
   
   return `
     <figure class="card" ${dataAttrs}>
       <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" />
-      <figcaption>${escapeHtml(it.caption || '')}</figcaption>
-      ${tags.length ? `<div class="meta">${tags.join('')}</div>` : ''}
+      ${locationName ? `<div class="card-location">📍 ${escapeHtml(locationName)}</div>` : ''}
     </figure>
   `;
 }
@@ -499,7 +492,11 @@ async function updateLightboxMap(locationStr) {
 function initLightboxIfPresent() {
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightboxImage');
-  const lightboxInfo = document.getElementById('lightboxInfo');
+  const lightboxLocation = document.getElementById('lightboxLocation');
+  const lightboxDate = document.getElementById('lightboxDate');
+  const lightboxCamera = document.getElementById('lightboxCamera');
+  const lightboxLens = document.getElementById('lightboxLens');
+  const lightboxExif = document.getElementById('lightboxExif');
   const closeBtn = document.querySelector('.lightbox-close');
   const prevBtn = document.querySelector('.lightbox .prev');
   const nextBtn = document.querySelector('.lightbox .next');
@@ -518,24 +515,56 @@ function initLightboxIfPresent() {
     // 移除所有尺寸限制，显示原图
     lightboxImg.src = getOriginalUrl(originalSrc);
     
-    // 渲染灯箱标签
-    if (lightboxInfo) {
-      const tags = [];
-      const ds = fig.dataset;
-      if (ds.location) tags.push(`<span class=\"tag\">📍 ${ds.location}</span>`);
-      if (ds.camera) tags.push(`<span class=\"tag\">📷 ${ds.camera}</span>`);
-      if (ds.lens) tags.push(`<span class=\"tag\">🔭 ${ds.lens}</span>`);
-      const tech = [];
-      if (ds.focal) tech.push(ds.focal);
-      if (ds.aperture) tech.push(ds.aperture);
-      if (ds.shutter) tech.push(ds.shutter);
-      if (ds.iso) tech.push('ISO ' + ds.iso);
-      if (tech.length) tags.push(`<span class=\"tag\">⚙️ ${tech.join(' · ')}</span>`);
-      lightboxInfo.innerHTML = tags.join('');
+    // 更新灯箱详细信息
+    const ds = fig.dataset;
+    
+    // 位置信息
+    if (lightboxLocation && ds.location) {
+      const locationName = ds.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || ds.location;
+      lightboxLocation.querySelector('.detail-text').textContent = locationName;
+      lightboxLocation.style.display = 'flex';
+    } else if (lightboxLocation) {
+      lightboxLocation.style.display = 'none';
+    }
+    
+    // 日期信息（如果有）
+    if (lightboxDate) {
+      lightboxDate.style.display = 'none'; // 暂时隐藏，如果JSON中有日期数据可以显示
+    }
+    
+    // 相机信息
+    if (lightboxCamera && ds.camera) {
+      lightboxCamera.querySelector('.detail-text').textContent = ds.camera;
+      lightboxCamera.style.display = 'flex';
+    } else if (lightboxCamera) {
+      lightboxCamera.style.display = 'none';
+    }
+    
+    // 镜头信息
+    if (lightboxLens && ds.lens) {
+      lightboxLens.querySelector('.detail-text').textContent = ds.lens;
+      lightboxLens.style.display = 'flex';
+    } else if (lightboxLens) {
+      lightboxLens.style.display = 'none';
+    }
+    
+    // EXIF信息（格式：ISO 125 | f5.6 | 1/1600 s | 70 mm）
+    const exifParts = [];
+    if (ds.iso) exifParts.push(`ISO ${ds.iso}`);
+    if (ds.aperture) exifParts.push(`f${ds.aperture}`);
+    else if (ds.f && ds.f !== 'undefined' && ds.f !== 'null') exifParts.push(`f${ds.f}`);
+    if (ds.shutter) exifParts.push(ds.shutter);
+    if (ds.focal) exifParts.push(`${ds.focal}`);
+    
+    if (lightboxExif && exifParts.length > 0) {
+      lightboxExif.querySelector('.detail-text').textContent = exifParts.join(' | ');
+      lightboxExif.style.display = 'flex';
+    } else if (lightboxExif) {
+      lightboxExif.style.display = 'none';
     }
     
     // 更新地图显示位置
-    const locationStr = fig.dataset.location;
+    const locationStr = ds.location;
     updateLightboxMap(locationStr);
     
     lightbox.classList.add('open');
