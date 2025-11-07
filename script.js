@@ -671,25 +671,22 @@ function initLightboxIfPresent() {
         if (!locationCoords && locationText) {
           geocodeLocation(ds.location).then(coords => {
             if (coords) {
-              const mapContainer = document.getElementById('lightboxMap');
-              if (mapContainer && !lightboxMap) {
-                initLightboxMap(coords);
-              } else if (lightboxMap) {
-                lightboxMap.setView(coords, 13);
-                // 清除旧标记并添加新标记
-                lightboxMap.eachLayer((layer) => {
-                  if (layer instanceof L.Marker) {
-                    lightboxMap.removeLayer(layer);
+              // 等待DOM更新完成后再初始化地图
+              setTimeout(() => {
+                const mapContainer = document.getElementById('lightboxMap');
+                if (mapContainer) {
+                  // 如果地图已存在，先清理
+                  if (lightboxMap) {
+                    try {
+                      lightboxMap.remove();
+                    } catch (e) {
+                      console.warn('Error removing old lightbox map:', e);
+                    }
+                    lightboxMap = null;
                   }
-                });
-                const icon = L.divIcon({
-                  className: 'photo-marker',
-                  html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0b0c0d; box-shadow: 0 0 0 2px rgba(124,196,255,0.5);"></div>`,
-                  iconSize: [16, 16],
-                  iconAnchor: [8, 8]
-                });
-                L.marker(coords, { icon: icon }).addTo(lightboxMap);
-              }
+                  initLightboxMap(coords);
+                }
+              }, 200);
             }
           });
         }
@@ -790,6 +787,16 @@ function initLightboxIfPresent() {
             <div id="lightboxMap" class="lightbox-map"></div>
           </div>
         `;
+      }
+      
+      // 在更新内容之前，先清理旧的地图实例（因为innerHTML会删除容器）
+      if (lightboxMap) {
+        try {
+          lightboxMap.remove();
+        } catch (e) {
+          console.warn('Error removing old lightbox map:', e);
+        }
+        lightboxMap = null;
       }
       
       lightboxInfo.innerHTML = infoHTML || '<div class="lightbox-info-empty">无信息</div>';
