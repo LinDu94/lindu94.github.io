@@ -174,6 +174,7 @@ function renderCard(it) {
     ['aperture', exif.f || exif.aperture], // 优先使用 f，如果没有则使用 aperture
     ['shutter', exif.shutter],
     ['iso', exif.iso],
+    ['date', exif.date || exif.datetime || it.date], // 拍摄时间
     ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
   
@@ -604,8 +605,69 @@ function initLightboxIfPresent() {
       
       // 解析地点信息
       let locationText = '';
+      let locationCoords = null;
       if (ds.location) {
         locationText = String(ds.location).trim().replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
+        locationCoords = parseCoordinates(ds.location);
+        // 如果解析失败，尝试从缓存获取
+        if (!locationCoords && locationText) {
+          if (geocodeCache[locationText]) {
+            const cached = geocodeCache[locationText];
+            if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+              locationCoords = cached.coords;
+            }
+          }
+        }
+        // 如果仍然没有坐标，异步尝试地理编码
+        if (!locationCoords && locationText) {
+          geocodeLocation(ds.location).then(coords => {
+            if (coords) {
+              const mapContainer = document.getElementById('lightboxMap');
+              if (mapContainer && !lightboxMap) {
+                initLightboxMap(coords);
+              } else if (lightboxMap) {
+                lightboxMap.setView(coords, 13);
+                // 清除旧标记并添加新标记
+                lightboxMap.eachLayer((layer) => {
+                  if (layer instanceof L.Marker) {
+                    lightboxMap.removeLayer(layer);
+                  }
+                });
+                const icon = L.divIcon({
+                  className: 'photo-marker',
+                  html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0b0c0d; box-shadow: 0 0 0 2px rgba(124,196,255,0.5);"></div>`,
+                  iconSize: [16, 16],
+                  iconAnchor: [8, 8]
+                });
+                L.marker(coords, { icon: icon }).addTo(lightboxMap);
+              }
+            }
+          });
+        }
+      }
+      
+      // 格式化日期
+      let dateText = '';
+      if (ds.date) {
+        const dateStr = String(ds.date).trim();
+        // 尝试格式化日期
+        try {
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            dateText = date.toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'Asia/Shanghai'
+            });
+          } else {
+            dateText = dateStr;
+          }
+        } catch (e) {
+          dateText = dateStr;
+        }
       }
       
       // 构建表格HTML
@@ -621,11 +683,21 @@ function initLightboxIfPresent() {
         `);
       }
       
-      // 位置信息
+      // 拍摄时间
+      if (dateText) {
+        tableRows.push(`
+          <tr class="lightbox-info-row">
+            <td class="lightbox-info-label">拍摄时间</td>
+            <td class="lightbox-info-value">${escapeHtml(dateText)}</td>
+          </tr>
+        `);
+      }
+      
+      // 拍摄地点
       if (locationText) {
         tableRows.push(`
           <tr class="lightbox-info-row">
-            <td class="lightbox-info-label">位置</td>
+            <td class="lightbox-info-label">拍摄地点</td>
             <td class="lightbox-info-value">${escapeHtml(locationText)}</td>
           </tr>
         `);
@@ -682,16 +754,37 @@ function initLightboxIfPresent() {
         `);
       }
       
+      // 构建信息HTML（包含地图）
+      let infoHTML = '';
       if (tableRows.length > 0) {
-        lightboxInfo.innerHTML = `
+        infoHTML = `
           <table class="lightbox-info-table">
             <tbody>
               ${tableRows.join('')}
             </tbody>
           </table>
         `;
-      } else {
-        lightboxInfo.innerHTML = '<div class="lightbox-info-empty">无信息</div>';
+      }
+      
+      // 添加地图区域（如果有位置信息，即使坐标还未获取）
+      if (locationText) {
+        infoHTML += `
+          <div class="lightbox-map-container">
+            <div id="lightboxMap" class="lightbox-map"></div>
+          </div>
+        `;
+      }
+      
+      lightboxInfo.innerHTML = infoHTML || '<div class="lightbox-info-empty">无信息</div>';
+      
+      // 初始化地图（如果有坐标）
+      if (locationCoords) {
+        setTimeout(() => {
+          initLightboxMap(locationCoords);
+        }, 100);
+      } else if (locationText) {
+        // 如果没有坐标但有位置文本，地图容器已创建，等待异步地理编码完成
+        // 地理编码会在上面的代码中完成并更新地图
       }
     }
     lightbox.classList.add('open');
@@ -702,11 +795,11 @@ function initLightboxIfPresent() {
     lightbox.classList.remove('open');
     lightbox.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
-    // 清理地图（可选，也可以保留）
-    // if (lightboxMap) {
-    //   lightboxMap.remove();
-    //   lightboxMap = null;
-    // }
+    // 清理地图
+    if (lightboxMap) {
+      lightboxMap.remove();
+      lightboxMap = null;
+    }
   }
   function step(delta) { openLightbox(currentIndex + delta); }
   cards.forEach((card, i) => {
@@ -727,6 +820,66 @@ function initLightboxIfPresent() {
     if (e.key === 'ArrowRight') step(1);
   });
 }
+// 灯箱地图实例
+let lightboxMap = null;
+
+// 初始化灯箱中的地图（使用坐标）
+async function initLightboxMap(coords) {
+  if (!coords || !Array.isArray(coords) || coords.length !== 2) return;
+  
+  const lightboxMapContainer = document.getElementById('lightboxMap');
+  if (!lightboxMapContainer) return;
+  
+  // 检查 Leaflet 是否已加载
+  if (typeof L === 'undefined' || !L.map) {
+    console.warn('Leaflet.js not loaded, cannot show map in lightbox');
+    return;
+  }
+  
+  // 如果地图已存在，更新位置
+  if (lightboxMap) {
+    lightboxMap.setView(coords, 13);
+    // 清除旧标记
+    lightboxMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) {
+        lightboxMap.removeLayer(layer);
+      }
+    });
+  } else {
+    // 创建新地图
+    lightboxMap = L.map(lightboxMapContainer, {
+      zoomControl: true,
+      scrollWheelZoom: false,
+      dragging: true,
+      touchZoom: true,
+      doubleClickZoom: true,
+      boxZoom: false,
+      keyboard: false
+    }).setView(coords, 13);
+    
+    // 添加地图图层（使用 Mapbox）
+    const tileLayer = addMapTileLayer('mapbox');
+    tileLayer.addTo(lightboxMap);
+    
+    // 确保地图正确渲染
+    setTimeout(() => {
+      if (lightboxMap) {
+        lightboxMap.invalidateSize();
+      }
+    }, 100);
+  }
+  
+  // 添加标记
+  const icon = L.divIcon({
+    className: 'photo-marker',
+    html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0b0c0d; box-shadow: 0 0 0 2px rgba(124,196,255,0.5);"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  
+  L.marker(coords, { icon: icon }).addTo(lightboxMap);
+}
+
 // 初始尝试（若没通过 JSON 渲染，也可直接初始化）
 initLightboxIfPresent();
 

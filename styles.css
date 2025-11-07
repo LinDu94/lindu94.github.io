@@ -416,19 +416,44 @@ a { color: inherit; text-decoration: none; }
 .story-card.collapsed .body, .story-card.collapsed .media { display: none; }
 
 /* 灯箱 */
-.lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; z-index: 100; }
+.lightbox { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,.95); 
+  display: none; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 100;
+  overflow-y: auto;
+}
 .lightbox.open { display: flex; }
-.lightbox img { max-width: 88vw; max-height: 86vh; border-radius: 12px; box-shadow: var(--shadow); }
+.lightbox-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 40px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+.lightbox-image-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.lightbox img { 
+  max-width: 100%; 
+  max-height: 70vh; 
+  border-radius: 12px; 
+  box-shadow: var(--shadow);
+  object-fit: contain;
+}
 .lightbox-info { 
-  position: absolute; 
-  left: 50%; 
-  transform: translateX(-50%); 
-  bottom: 24px; 
+  width: 100%;
+  max-width: 800px;
   background: rgba(15, 15, 16, 0.95);
   border-radius: 12px;
-  padding: 20px;
-  max-width: 600px;
-  width: 90%;
+  padding: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -466,6 +491,24 @@ a { color: inherit; text-decoration: none; }
   color: #8b949e;
   text-align: center;
   padding: 20px;
+}
+
+.lightbox-map-container {
+  margin-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 24px;
+}
+
+.lightbox-map {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1b1e;
+}
+
+.lightbox-map .leaflet-container {
+  background: #1a1b1e;
 }
 .lightbox-close { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 999px; width: 40px; height: 40px; font-size: 22px; cursor: pointer; }
 .lightbox .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 999px; width: 44px; height: 44px; font-size: 26px; cursor: pointer; }
