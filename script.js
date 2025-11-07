@@ -353,8 +353,39 @@ function handleMapHighlight(highlightFile, imageUrl) {
 tryRenderStoriesFromJSON();
 
 // 初始化地图（仅在map.html页面）
-if (document.getElementById('photoMap') && typeof L !== 'undefined') {
-  initPhotoMap();
+function initMapWhenReady() {
+  const mapContainer = document.getElementById('photoMap');
+  if (!mapContainer) return;
+  
+  // 检查 Leaflet 是否已加载
+  if (typeof L !== 'undefined' && L.map) {
+    initPhotoMap();
+  } else {
+    // 如果还没加载，等待一下再试（最多等待5秒）
+    let attempts = 0;
+    const maxAttempts = 50;
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (typeof L !== 'undefined' && L.map) {
+        clearInterval(checkInterval);
+        initPhotoMap();
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        console.error('Leaflet.js failed to load');
+      }
+    }, 100);
+  }
+}
+
+// 等待页面和脚本都加载完成
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 再等待一下确保 Leaflet 已加载
+    setTimeout(initMapWhenReady, 100);
+  });
+} else {
+  // 如果文档已加载，等待一下确保 Leaflet 已加载
+  setTimeout(initMapWhenReady, 100);
 }
 
 function initLightboxIfPresent() {
@@ -667,6 +698,75 @@ function getDistance(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
+// 地图服务配置
+const mapTileProviders = {
+  // 国际地图服务（默认）
+  international: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  },
+  // 中国地图服务（使用OpenStreetMap中国镜像）
+  china: {
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: '',
+    maxZoom: 19
+  },
+  // 备用国际服务
+  internationalAlt: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: 'abc',
+    maxZoom: 19
+  }
+};
+
+// 检测用户地理位置并选择合适的地图服务
+async function detectUserLocation() {
+  try {
+    // 使用免费的IP地理位置API（带超时控制）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    const response = await fetch('https://ipapi.co/json/', {
+      signal: controller.signal
+    }).catch(() => null);
+    
+    clearTimeout(timeoutId);
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      const countryCode = data.country_code;
+      
+      // 如果是中国，使用中国地图服务
+      if (countryCode === 'CN') {
+        return 'china';
+      }
+    }
+  } catch (error) {
+    // 静默失败，使用默认服务
+    if (error.name !== 'AbortError') {
+      console.warn('Failed to detect user location:', error);
+    }
+  }
+  
+  // 默认使用国际地图服务
+  return 'international';
+}
+
+// 添加地图图层
+function addMapTileLayer(providerKey) {
+  const provider = mapTileProviders[providerKey] || mapTileProviders.international;
+  
+  return L.tileLayer(provider.url, {
+    attribution: provider.attribution,
+    subdomains: provider.subdomains,
+    maxZoom: provider.maxZoom
+  });
+}
+
 // 初始化地图
 async function initPhotoMap() {
   const mapContainer = document.getElementById('photoMap');
@@ -688,12 +788,30 @@ async function initPhotoMap() {
     scrollWheelZoom: true
   }).setView([35.0, 105.0], 4);
   
-  // 添加深色主题的瓦片图层
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(photoMap);
+  // 检测用户位置并选择合适的地图服务
+  const mapProvider = await detectUserLocation();
+  const tileLayer = addMapTileLayer(mapProvider);
+  tileLayer.addTo(photoMap);
+  
+  // 如果主要服务失败，尝试备用服务
+  let errorCount = 0;
+  tileLayer.on('tileerror', function() {
+    errorCount++;
+    // 如果错误次数超过3次，切换到备用服务
+    if (errorCount >= 3 && mapProvider === 'international') {
+      console.warn('Primary map service failed, trying alternative...');
+      const altLayer = addMapTileLayer('internationalAlt');
+      altLayer.addTo(photoMap);
+      photoMap.removeLayer(tileLayer);
+    }
+  });
+  
+  // 确保地图正确渲染（处理可能的尺寸问题）
+  setTimeout(() => {
+    if (photoMap) {
+      photoMap.invalidateSize();
+    }
+  }, 100);
   
   // 处理所有图片的位置（先显示已有坐标的，然后异步加载需要地理编码的）
   const locationGroups = new Map(); // key: "lat,lng", value: {coords, items, locationName}
