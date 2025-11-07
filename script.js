@@ -1014,6 +1014,7 @@ async function initPhotoMap() {
   
   // 第一遍：快速处理已有坐标的（同步解析，不调用API）
   for (const item of galleryItems) {
+    // 跳过没有位置信息的项目
     if (!item.location) continue;
     
     // 先尝试快速解析坐标（不调用API）
@@ -1039,6 +1040,7 @@ async function initPhotoMap() {
           locationName: item.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || item.location
         });
       }
+      // 只有当有实际照片数据时才添加到 items
       locationGroups.get(key).items.push(item);
     } else {
       // 需要地理编码的，加入队列
@@ -1046,12 +1048,13 @@ async function initPhotoMap() {
     }
   }
   
-  // 立即显示已有坐标的标记
+  // 立即显示已有坐标的标记（只显示有照片的地点）
   addMarkersToMap(locationGroups);
   
-  // 如果有已显示的标记，先调整地图视图
-  if (locationGroups.size > 0) {
-    const bounds = Array.from(locationGroups.values()).map(g => g.coords);
+  // 如果有已显示的标记，先调整地图视图（只包含有照片的地点）
+  const validGroups = Array.from(locationGroups.values()).filter(g => g.items && g.items.length > 0);
+  if (validGroups.length > 0) {
+    const bounds = validGroups.map(g => g.coords);
     photoMap.fitBounds(bounds, { padding: [50, 50] });
   }
   
@@ -1068,19 +1071,27 @@ async function initPhotoMap() {
             items: [],
             locationName: item.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || item.location
           });
-          // 立即添加新标记
-          addMarkersToMap(new Map([[key, locationGroups.get(key)]]));
-        } else {
-          locationGroups.get(key).items.push(item);
-          // 更新已有标记的弹出窗口
-          updateMarkerPopup(key, locationGroups.get(key));
+        }
+        // 添加照片到该地点
+        locationGroups.get(key).items.push(item);
+        
+        // 只有当该地点有照片时才添加或更新标记
+        if (locationGroups.get(key).items.length > 0) {
+          if (!locationGroups.get(key).marker) {
+            // 立即添加新标记
+            addMarkersToMap(new Map([[key, locationGroups.get(key)]]));
+          } else {
+            // 更新已有标记的弹出窗口
+            updateMarkerPopup(key, locationGroups.get(key));
+          }
         }
       }
     }
     
-    // 最后重新调整视图以包含所有标记
-    if (locationGroups.size > 0) {
-      const bounds = Array.from(locationGroups.values()).map(g => g.coords);
+    // 最后重新调整视图以包含所有标记（只包含有照片的地点）
+    const validGroups = Array.from(locationGroups.values()).filter(g => g.items && g.items.length > 0);
+    if (validGroups.length > 0) {
+      const bounds = validGroups.map(g => g.coords);
       photoMap.fitBounds(bounds, { padding: [50, 50] });
     }
   }
@@ -1090,6 +1101,11 @@ async function initPhotoMap() {
 function addMarkersToMap(locationGroups) {
   locationGroups.forEach((group, key) => {
     const { coords, items, locationName } = group;
+    
+    // 只有当该地点有照片时才添加标记
+    if (!items || items.length === 0) {
+      return;
+    }
     
     // 检查标记是否已存在
     if (group.marker) return;
