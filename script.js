@@ -988,7 +988,8 @@ function addMarkersToMap(locationGroups) {
     // 创建弹出窗口内容
     const popupContent = createMapPopupContent(locationName, items, coords);
     const popup = L.popup({
-      maxWidth: 400,
+      maxWidth: 500,
+      maxHeight: 600,
       className: 'photo-map-popup'
     }).setContent(popupContent);
     
@@ -999,11 +1000,13 @@ function addMarkersToMap(locationGroups) {
       const popupEl = this.getPopup().getElement();
       if (!popupEl) return;
       
-      // 绑定图片点击事件
-      const photoElements = popupEl.querySelectorAll('.map-popup-photo');
+      // 绑定图片点击事件（包括照片容器和图片本身）
+      const photoElements = popupEl.querySelectorAll('.map-popup-photo-item, .map-popup-photo');
       photoElements.forEach(photoEl => {
         photoEl.addEventListener('click', function() {
-          const src = this.dataset.src;
+          // 获取原图URL
+          const item = this.closest('.map-popup-photo-item');
+          const src = (item && item.dataset.originalSrc) || this.dataset.src || this.dataset.originalSrc;
           if (!src) return;
           
           // 如果在gallery页面，尝试找到对应的卡片并触发点击（打开灯箱）
@@ -1054,11 +1057,32 @@ function createMapPopupContent(locationName, items, centerCoords) {
     return { ...item, distance };
   }).sort((a, b) => a.distance - b.distance);
   
-  const photosHtml = sortedItems.slice(0, 9).map((item, idx) => {
+  const photosHtml = sortedItems.slice(0, 6).map((item, idx) => {
+    const exif = item.exif || {};
+    const thumbnailUrl = getThumbnailUrl(item.src, 300);
+    const originalUrl = item.originalSrc || getOriginalUrl(item.src);
+    
+    // EXIF信息
+    const exifInfo = [];
+    if (exif.camera) exifInfo.push(`📷 ${exif.camera}`);
+    if (exif.lens) exifInfo.push(`🔭 ${exif.lens}`);
+    const tech = [];
+    if (exif.focal) tech.push(exif.focal);
+    if (exif.f) tech.push(`f/${exif.f}`);
+    if (exif.shutter) tech.push(exif.shutter);
+    if (typeof exif.iso !== 'undefined') tech.push(`ISO ${exif.iso}`);
+    if (tech.length) exifInfo.push(`⚙️ ${tech.join(' · ')}`);
+    
     return `
-      <div class="map-popup-photo" data-index="${idx}" data-src="${escapeAttr(item.src)}">
-        <img src="${escapeAttr(item.src)}" alt="${escapeHtml(item.alt || '')}" loading="lazy" />
-        ${sortedItems.length > 9 && idx === 8 ? `<div class="map-popup-photo-count">+${sortedItems.length - 9}</div>` : ''}
+      <div class="map-popup-photo-item" data-index="${idx}" data-src="${escapeAttr(originalUrl)}" data-original-src="${escapeAttr(originalUrl)}">
+        <div class="map-popup-photo">
+          <img src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(item.alt || '')}" loading="lazy" />
+          ${sortedItems.length > 6 && idx === 5 ? `<div class="map-popup-photo-count">+${sortedItems.length - 6}</div>` : ''}
+        </div>
+        <div class="map-popup-photo-info">
+          <div class="map-popup-photo-title">${escapeHtml(item.alt || '未命名')}</div>
+          ${exifInfo.length > 0 ? `<div class="map-popup-photo-exif">${exifInfo.join(' • ')}</div>` : ''}
+        </div>
       </div>
     `;
   }).join('');
@@ -1066,8 +1090,8 @@ function createMapPopupContent(locationName, items, centerCoords) {
   return `
     <div class="map-popup-content">
       <div class="map-popup-title">📍 ${escapeHtml(locationName)}</div>
-      <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">${sortedItems.length} 张照片</div>
-      <div class="map-popup-photos">${photosHtml}</div>
+      <div style="color: var(--muted); font-size: 12px; margin-bottom: 12px;">${sortedItems.length} 张照片</div>
+      <div class="map-popup-photos-list">${photosHtml}</div>
     </div>
   `;
 }
