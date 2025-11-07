@@ -1,0 +1,133 @@
+[
+  {
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762160850912_孤影凌虚之景.jpg",
+  "alt": "孤影凌虚之景",
+  "caption": "",
+  "location": "N33° 4' 34.747\" E101° 8' 54.247\"  莲宝叶则·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 400,
+    "f": 2.8,
+    "shutter": "1/1600s",
+    "focal": "12.24mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762161237278_鎏峰映塔之境.jpg",
+  "alt": "鎏峰映塔之境",
+  "caption": "",
+  "location": "N37° 21' 19.566\" E97° 14' 59.122\"  德令哈市·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 400,
+    "f": 2.8,
+    "shutter": "1/400s",
+    "focal": "19.35mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236433454_生死交响.jpg",
+  "alt": "生死交响",
+  "caption": "",
+  "location": " 洛克之路·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "lens": "NIKKOR Z 14-24mm f/2.8 S",
+    "iso": 64,
+    "f": 9,
+    "shutter": "1/250s",
+    "focal": "14mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236425192_峰霭映花之景.jpg",
+  "alt": "峰霭映花之景",
+  "caption": "",
+  "location": " 莲宝叶则·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "lens": "NIKKOR Z 14-24mm f/2.8 S",
+    "iso": 64,
+    "f": 8,
+    "shutter": "1/80s",
+    "focal": "14mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236427983_云峦牧野之息.jpg",
+  "alt": "云峦牧野之息",
+  "caption": "",
+  "location": " 甘南·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "lens": "NIKKOR Z 14-24mm f/2.8 S",
+    "iso": 160,
+    "f": 9,
+    "shutter": "1/40s",
+    "focal": "14mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236427845_星穹映殿之辉.jpg",
+  "alt": "星穹映殿之辉",
+  "caption": "",
+  "location": " 敦煌·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "lens": "NIKKOR Z 14-24mm f/2.8 S",
+    "iso": 160,
+    "f": 7.1,
+    "shutter": "10s",
+    "focal": "16mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236428944_银芒映日之柱.jpg",
+  "alt": "银芒映日之柱",
+  "caption": "",
+  "location": "N40° 1' 29.011\" E94° 26' 39.936\"  敦煌·中国",
+  "exif": {
+    "camera": "DJI FC4382",
+    "iso": 100,
+    "f": 2.8,
+    "shutter": "1/5000s",
+    "focal": "19.35mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1762236423104_晦暝拥水之原.jpg",
+  "alt": "晦暝拥水之原",
+  "caption": "",
+  "location": "德令哈市·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 190,
+    "f": 2.8,
+    "shutter": "1/2000s",
+    "focal": "12.29mm"
+  }
+},
+{
+  "category": "nature", 
+  "src": "https://photo-art.pages.dev/file/1762236430705_绿毡萦流之野.jpg",
+  "alt": "绿毡萦流之野",
+  "caption": "",
+  "location": "N34° 17' 51.42\" E102° 17' 44.436\"  阿坝藏族羌族自治州·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 130,
+    "f": 2.8,
+    "shutter": "1/8000s",
+    "focal": "12.29mm"
+  }
+}
+
+]

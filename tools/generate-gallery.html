@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>生成 gallery.json | 工具</title>
+    <meta name="description" content="从本地选择自然/城市目录，批量生成 data/gallery.json。" />
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .tool { padding: 40px 0; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+      .row { display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center; margin: 8px 0; }
+      input[type="text"] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+      .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; white-space: pre; background: #0e0f11; border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--muted); margin-top: 16px; }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="../gallery.html"><span class="logo">◎</span><span class="brand-text">林渡</span></a>
+        <nav class="site-nav"><a href="../gallery.html">画廊</a><a href="../stories.html">故事</a><a href="../about.html">简介</a></nav>
+      </div>
+    </header>
+
+    <main class="tool">
+      <div class="container">
+        <h2>生成 gallery.json</h2>
+        <p class="muted">选择两个目录（自然/城市），并指定部署基路径（如 ./assets/works/nature/）。将读取同名 .json 侧车并合并 EXIF/地点。</p>
+
+        <div class="grid">
+          <div class="panel">
+            <h3>自然（nature）</h3>
+            <div class="row"><label>目录</label><input id="dirNature" type="file" webkitdirectory directory multiple /></div>
+            <div class="row"><label>基路径</label><input id="baseNature" type="text" value="./assets/works/nature/" /></div>
+          </div>
+          <div class="panel">
+            <h3>城市（city）</h3>
+            <div class="row"><label>目录</label><input id="dirCity" type="file" webkitdirectory directory multiple /></div>
+            <div class="row"><label>基路径</label><input id="baseCity" type="text" value="./assets/works/city/" /></div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:16px; display:flex; gap:8px;">
+          <button id="gen" class="btn primary">生成 JSON</button>
+          <button id="download" class="btn">下载为 data/gallery.json</button>
+        </div>
+
+        <div id="output" class="code"></div>
+      </div>
+    </main>
+
+    <script src="./generate-gallery.js"></script>
+  </body>
+  </html>
+
+
