@@ -459,37 +459,56 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-height: 85vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.lightbox-info-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.lightbox-info-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.lightbox-info-row:last-child {
-  border-bottom: none;
-}
-
-.lightbox-info-label {
-  padding: 6px 12px 6px 0;
+/* 日期时间（顶部右侧） */
+.lightbox-date {
+  text-align: right;
   color: #8b949e;
   font-size: 11px;
-  font-weight: 500;
-  vertical-align: top;
-  width: 80px;
-  text-align: left;
+  margin-bottom: 4px;
 }
 
-.lightbox-info-value {
-  padding: 6px 0;
+/* 位置信息 */
+.lightbox-location {
   color: #eaecef;
   font-size: 12px;
-  vertical-align: top;
   line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+/* 相机和镜头 */
+.lightbox-camera-lens {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.lightbox-camera {
+  color: #eaecef;
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lightbox-lens {
+  color: #eaecef;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 曝光设置 */
+.lightbox-exposure {
+  color: #eaecef;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 4px;
 }
 
 .lightbox-info-empty {
@@ -510,10 +529,13 @@ a { color: inherit; text-decoration: none; }
   border-radius: 8px;
   overflow: hidden;
   background: #1a1b1e;
+  position: relative;
 }
 
 .lightbox-map .leaflet-container {
   background: #1a1b1e;
+  width: 100% !important;
+  height: 100% !important;
 }
 .lightbox-close { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 999px; width: 40px; height: 40px; font-size: 22px; cursor: pointer; }
 .lightbox .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 999px; width: 44px; height: 44px; font-size: 26px; cursor: pointer; }

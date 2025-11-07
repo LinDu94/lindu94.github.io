@@ -646,22 +646,23 @@ function initLightboxIfPresent() {
         }
       }
       
-      // 格式化日期
+      // 格式化日期（按照图片格式：7/13 17:53 (GMT+09:00)）
       let dateText = '';
       if (ds.date) {
         const dateStr = String(ds.date).trim();
-        // 尝试格式化日期
         try {
           const date = new Date(dateStr);
           if (!isNaN(date.getTime())) {
-            dateText = date.toLocaleString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'Asia/Shanghai'
-            });
+            // 格式：M/d HH:mm (GMT+09:00)
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            // 获取时区偏移
+            const timezoneOffset = -date.getTimezoneOffset() / 60;
+            const timezoneSign = timezoneOffset >= 0 ? '+' : '';
+            const timezoneStr = `GMT${timezoneSign}${String(timezoneOffset).padStart(2, '0')}:00`;
+            dateText = `${month}/${day} ${hours}:${minutes} (${timezoneStr})`;
           } else {
             dateText = dateStr;
           }
@@ -670,62 +671,42 @@ function initLightboxIfPresent() {
         }
       }
       
-      // 构建表格HTML
-      let tableRows = [];
+      // 构建信息HTML（按照图片布局）
+      let infoHTML = '';
       
-      // 作品标题
-      if (imageTitle) {
-        tableRows.push(`
-          <tr class="lightbox-info-row">
-            <td class="lightbox-info-label">作品标题</td>
-            <td class="lightbox-info-value">${escapeHtml(imageTitle)}</td>
-          </tr>
-        `);
-      }
-      
-      // 拍摄时间
+      // 顶部：日期时间（右侧对齐）
       if (dateText) {
-        tableRows.push(`
-          <tr class="lightbox-info-row">
-            <td class="lightbox-info-label">拍摄时间</td>
-            <td class="lightbox-info-value">${escapeHtml(dateText)}</td>
-          </tr>
-        `);
+        infoHTML += `
+          <div class="lightbox-date">
+            ${escapeHtml(dateText)}
+          </div>
+        `;
       }
       
-      // 拍摄地点
+      // 位置信息（如果有）
       if (locationText) {
-        tableRows.push(`
-          <tr class="lightbox-info-row">
-            <td class="lightbox-info-label">拍摄地点</td>
-            <td class="lightbox-info-value">${escapeHtml(locationText)}</td>
-          </tr>
-        `);
+        infoHTML += `
+          <div class="lightbox-location">
+            ${escapeHtml(locationText)}
+          </div>
+        `;
       }
       
       // 相机和镜头
       if (ds.camera || ds.lens) {
-        let cameraLens = '';
+        infoHTML += `<div class="lightbox-camera-lens">`;
         if (ds.camera) {
           const cameraName = String(ds.camera).trim();
           const logoHtml = renderCameraBrandLogo(cameraName);
-          cameraLens = `${logoHtml}${escapeHtml(cameraName)}`;
+          infoHTML += `<div class="lightbox-camera">${logoHtml}${escapeHtml(cameraName)}</div>`;
         }
         if (ds.lens) {
-          if (cameraLens) cameraLens += '<br>';
-          cameraLens += escapeHtml(String(ds.lens).trim());
+          infoHTML += `<div class="lightbox-lens">${escapeHtml(String(ds.lens).trim())}</div>`;
         }
-        if (cameraLens) {
-          tableRows.push(`
-            <tr class="lightbox-info-row">
-              <td class="lightbox-info-label">相机 / 镜头</td>
-              <td class="lightbox-info-value">${cameraLens}</td>
-            </tr>
-          `);
-        }
+        infoHTML += `</div>`;
       }
       
-      // 曝光设置
+      // 曝光设置（ISO | f/5.6 | 1/100 s | 70 mm）
       const exposure = [];
       if (ds.iso) {
         exposure.push(`ISO ${escapeHtml(String(ds.iso).trim())}`);
@@ -746,23 +727,10 @@ function initLightboxIfPresent() {
       }
       
       if (exposure.length > 0) {
-        tableRows.push(`
-          <tr class="lightbox-info-row">
-            <td class="lightbox-info-label">曝光设置</td>
-            <td class="lightbox-info-value">${exposure.join(' | ')}</td>
-          </tr>
-        `);
-      }
-      
-      // 构建信息HTML（包含地图）
-      let infoHTML = '';
-      if (tableRows.length > 0) {
-        infoHTML = `
-          <table class="lightbox-info-table">
-            <tbody>
-              ${tableRows.join('')}
-            </tbody>
-          </table>
+        infoHTML += `
+          <div class="lightbox-exposure">
+            ${exposure.join(' | ')}
+          </div>
         `;
       }
       
@@ -779,12 +747,21 @@ function initLightboxIfPresent() {
       
       // 初始化地图（如果有坐标）
       if (locationCoords) {
+        // 等待DOM更新后再初始化地图
         setTimeout(() => {
           initLightboxMap(locationCoords);
-        }, 100);
+        }, 150);
       } else if (locationText) {
         // 如果没有坐标但有位置文本，地图容器已创建，等待异步地理编码完成
         // 地理编码会在上面的代码中完成并更新地图
+        // 但需要确保地图容器存在后再初始化
+        setTimeout(() => {
+          const mapContainer = document.getElementById('lightboxMap');
+          if (mapContainer && !lightboxMap) {
+            // 地图容器已创建，等待地理编码完成
+            // 地理编码会在上面的代码中调用initLightboxMap
+          }
+        }, 150);
       }
     }
     lightbox.classList.add('open');
@@ -825,10 +802,23 @@ let lightboxMap = null;
 
 // 初始化灯箱中的地图（使用坐标）
 async function initLightboxMap(coords) {
-  if (!coords || !Array.isArray(coords) || coords.length !== 2) return;
+  if (!coords || !Array.isArray(coords) || coords.length !== 2) {
+    console.warn('Invalid coordinates for lightbox map:', coords);
+    return;
+  }
   
   const lightboxMapContainer = document.getElementById('lightboxMap');
-  if (!lightboxMapContainer) return;
+  if (!lightboxMapContainer) {
+    console.warn('Lightbox map container not found');
+    return;
+  }
+  
+  // 检查容器是否有尺寸
+  if (lightboxMapContainer.offsetWidth === 0 || lightboxMapContainer.offsetHeight === 0) {
+    console.warn('Lightbox map container has no size, retrying...');
+    setTimeout(() => initLightboxMap(coords), 200);
+    return;
+  }
   
   // 检查 Leaflet 是否已加载
   if (typeof L === 'undefined' || !L.map) {
@@ -838,35 +828,64 @@ async function initLightboxMap(coords) {
   
   // 如果地图已存在，更新位置
   if (lightboxMap) {
-    lightboxMap.setView(coords, 13);
-    // 清除旧标记
-    lightboxMap.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
-        lightboxMap.removeLayer(layer);
-      }
-    });
-  } else {
-    // 创建新地图
-    lightboxMap = L.map(lightboxMapContainer, {
-      zoomControl: true,
-      scrollWheelZoom: false,
-      dragging: true,
-      touchZoom: true,
-      doubleClickZoom: true,
-      boxZoom: false,
-      keyboard: false
-    }).setView(coords, 13);
-    
-    // 添加地图图层（使用 Mapbox）
-    const tileLayer = addMapTileLayer('mapbox');
-    tileLayer.addTo(lightboxMap);
-    
-    // 确保地图正确渲染
-    setTimeout(() => {
-      if (lightboxMap) {
-        lightboxMap.invalidateSize();
-      }
-    }, 100);
+    try {
+      lightboxMap.setView(coords, 13);
+      // 清除旧标记
+      lightboxMap.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          lightboxMap.removeLayer(layer);
+        }
+      });
+    } catch (e) {
+      console.error('Error updating lightbox map:', e);
+      // 如果更新失败，重新创建地图
+      lightboxMap.remove();
+      lightboxMap = null;
+    }
+  }
+  
+  // 如果地图不存在或已被移除，创建新地图
+  if (!lightboxMap) {
+    try {
+      // 创建新地图
+      lightboxMap = L.map(lightboxMapContainer, {
+        zoomControl: true,
+        scrollWheelZoom: false,
+        dragging: true,
+        touchZoom: true,
+        doubleClickZoom: true,
+        boxZoom: false,
+        keyboard: false
+      }).setView(coords, 13);
+      
+      // 添加地图图层（使用 Mapbox）
+      const tileLayer = addMapTileLayer('mapbox');
+      tileLayer.addTo(lightboxMap);
+      
+      // 监听tile错误，如果Mapbox失败则使用备用服务
+      let errorCount = 0;
+      tileLayer.on('tileerror', function() {
+        errorCount++;
+        if (errorCount >= 3) {
+          console.warn('Mapbox tiles failed, trying alternative...');
+          const altLayer = addMapTileLayer('international');
+          altLayer.addTo(lightboxMap);
+          lightboxMap.removeLayer(tileLayer);
+        }
+      });
+      
+      // 确保地图正确渲染（延迟以确保容器已显示）
+      setTimeout(() => {
+        if (lightboxMap) {
+          lightboxMap.invalidateSize();
+          // 再次设置视图以确保正确显示
+          lightboxMap.setView(coords, 13);
+        }
+      }, 300);
+    } catch (e) {
+      console.error('Error creating lightbox map:', e);
+      return;
+    }
   }
   
   // 添加标记
@@ -877,7 +896,20 @@ async function initLightboxMap(coords) {
     iconAnchor: [8, 8]
   });
   
-  L.marker(coords, { icon: icon }).addTo(lightboxMap);
+  // 清除旧标记并添加新标记
+  if (lightboxMap) {
+    lightboxMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) {
+        lightboxMap.removeLayer(layer);
+      }
+    });
+    // 添加新标记
+    try {
+      L.marker(coords, { icon: icon }).addTo(lightboxMap);
+    } catch (e) {
+      console.error('Error adding marker to lightbox map:', e);
+    }
+  }
 }
 
 // 初始尝试（若没通过 JSON 渲染，也可直接初始化）
@@ -1134,13 +1166,14 @@ function getDistance(lat1, lng1, lat2, lng2) {
 const mapTileProviders = {
   // Mapbox 地图服务
   mapbox: {
-    url: 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
+    url: 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}',
     attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     id: 'mapbox/dark-v10',
     accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw',
     maxZoom: 18,
     tileSize: 512,
-    zoomOffset: -1
+    zoomOffset: -1,
+    retina: '@2x'
   },
   // 国际地图服务（备用）
   international: {
@@ -1202,12 +1235,14 @@ async function detectUserLocation() {
 function addMapTileLayer(providerKey) {
   const provider = mapTileProviders[providerKey] || mapTileProviders.mapbox;
   
-  if (providerKey === 'mapbox' || !providerKey) {
-    // 使用 Mapbox
-    return L.tileLayer(provider.url, {
+  if (providerKey === 'mapbox' || (!providerKey && mapTileProviders.mapbox)) {
+    // 使用 Mapbox - 需要替换URL中的占位符
+    const mapboxUrl = provider.url
+      .replace('{id}', provider.id)
+      .replace('{accessToken}', provider.accessToken);
+    
+    return L.tileLayer(mapboxUrl, {
       attribution: provider.attribution,
-      id: provider.id,
-      accessToken: provider.accessToken,
       maxZoom: provider.maxZoom,
       tileSize: provider.tileSize,
       zoomOffset: provider.zoomOffset
@@ -1216,7 +1251,7 @@ function addMapTileLayer(providerKey) {
     // 使用其他服务
     return L.tileLayer(provider.url, {
       attribution: provider.attribution,
-      subdomains: provider.subdomains,
+      subdomains: provider.subdomains || '',
       maxZoom: provider.maxZoom
     });
   }
