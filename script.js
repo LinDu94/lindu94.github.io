@@ -918,13 +918,13 @@ async function initLightboxMap(coords) {
         errorCount++;
         if (errorCount >= 3) {
           console.warn('Primary map service failed, trying alternative...');
-          let altProvider = 'osm';
-          if (mapProvider === 'google') {
-            // 如果 Google Maps 失败，尝试高德地图（中国）或 OpenStreetMap
+          let altProvider = 'osmStandard';
+          if (mapProvider === 'osm') {
+            // 如果 OpenStreetMap 失败，尝试高德地图（中国）或标准 OSM
             altProvider = 'gaode';
           } else if (mapProvider === 'gaode') {
-            // 如果高德地图失败，尝试 OpenStreetMap
-            altProvider = 'osm';
+            // 如果高德地图失败，尝试标准 OpenStreetMap
+            altProvider = 'osmStandard';
           }
           const altLayer = addMapTileLayer(altProvider);
           altLayer.addTo(lightboxMap);
@@ -1222,19 +1222,12 @@ function getDistance(lat1, lng1, lat2, lng2) {
 
 // 地图服务配置
 const mapTileProviders = {
-  // Google Maps（默认）
-  google: {
-    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    attribution: '© <a href="https://www.google.com/maps">Google Maps</a>',
-    subdomains: '0123',
-    maxZoom: 20
-  },
-  // Google Maps 卫星图（备用）
-  googleSatellite: {
-    url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attribution: '© <a href="https://www.google.com/maps">Google Maps</a>',
-    subdomains: '0123',
-    maxZoom: 20
+  // OpenStreetMap（默认，暗色主题）
+  osm: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
   },
   // 高德地图（中国备用，暗色主题）
   gaode: {
@@ -1243,11 +1236,11 @@ const mapTileProviders = {
     subdomains: '1234',
     maxZoom: 18
   },
-  // OpenStreetMap（备用）
-  osm: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
+  // OpenStreetMap 标准服务（备用）
+  osmStandard: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: 'abc',
     maxZoom: 19
   }
 };
@@ -1281,13 +1274,13 @@ async function detectUserLocation() {
     }
   }
   
-  // 默认使用 Google Maps
-  return 'google';
+  // 默认使用 OpenStreetMap
+  return 'osm';
 }
 
 // 添加地图图层
 function addMapTileLayer(providerKey) {
-  const provider = mapTileProviders[providerKey] || mapTileProviders.google;
+  const provider = mapTileProviders[providerKey] || mapTileProviders.osm;
   
   // 统一处理所有地图服务
   return L.tileLayer(provider.url, {
@@ -1330,13 +1323,13 @@ async function initPhotoMap() {
       // 如果错误次数超过3次，切换到备用服务
       if (errorCount >= 3) {
         console.warn('Primary map service failed, trying alternative...');
-        let altProvider = 'osm';
-        if (mapProvider === 'google') {
-          // 如果 Google Maps 失败，尝试高德地图（中国）或 OpenStreetMap
+        let altProvider = 'international';
+        if (mapProvider === 'apple') {
+          // 如果 Apple Maps 失败，尝试高德地图（中国）或国际地图
           altProvider = 'gaode';
         } else if (mapProvider === 'gaode') {
-          // 如果高德地图失败，尝试 OpenStreetMap
-          altProvider = 'osm';
+          // 如果高德地图失败，尝试国际地图
+          altProvider = 'international';
         }
         const altLayer = addMapTileLayer(altProvider);
         altLayer.addTo(photoMap);
