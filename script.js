@@ -81,6 +81,10 @@ async function tryRenderGalleryFromJSON() {
     cards = Array.from(document.querySelectorAll('.gallery .card'));
     bindFilters();
     
+    // 立即应用初始瀑布流布局（使用估算高度）
+    requestAnimationFrame(() => {
+      layoutMasonry();
+    });
     
     return true;
   } catch (_) {
@@ -182,9 +186,9 @@ function renderCard(it) {
   const imageName = it.alt || it.caption || '';
   
   return `
-    <figure class="card" ${dataAttrs}>
+    <figure class="card" ${dataAttrs} style="position: absolute; opacity: 0;">
       <div class="card-image">
-        <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" />
+        <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" onload="this.closest('.card').style.opacity='1'; if(window.updateMasonryLayout) window.updateMasonryLayout(this.closest('.card'));" />
       </div>
       <div class="card-info">
         ${imageName ? `<div class="card-location">${escapeHtml(imageName)}</div>` : ''}
@@ -193,13 +197,13 @@ function renderCard(it) {
   `;
 }
 
-// 瀑布流布局函数
-function layoutMasonry() {
+// 瀑布流布局函数（支持增量更新）
+function layoutMasonry(specificCard = null) {
   const gallery = document.getElementById('gallery');
   if (!gallery) return;
   
-  const cards = Array.from(gallery.querySelectorAll('.card'));
-  if (cards.length === 0) return;
+  const allCards = Array.from(gallery.querySelectorAll('.card'));
+  if (allCards.length === 0) return;
   
   // 获取容器宽度和卡片宽度
   const containerWidth = gallery.offsetWidth;
@@ -209,29 +213,78 @@ function layoutMasonry() {
   // 计算列数
   const columns = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
   
-  // 初始化列高度数组
+  // 如果指定了特定卡片，只更新该卡片及其后的卡片
+  let cardsToLayout = allCards;
+  if (specificCard) {
+    const cardIndex = allCards.indexOf(specificCard);
+    if (cardIndex >= 0) {
+      // 从该卡片开始重新布局
+      cardsToLayout = allCards.slice(cardIndex);
+      // 需要重新计算该卡片之前所有卡片的位置，以获取正确的列高度
+      const beforeCards = allCards.slice(0, cardIndex);
+      const columnHeights = new Array(columns).fill(0);
+      
+      beforeCards.forEach((card) => {
+        const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+        card.style.left = `${shortestColumnIndex * (cardWidth + gap)}px`;
+        card.style.top = `${columnHeights[shortestColumnIndex]}px`;
+        card.style.width = `${cardWidth}px`;
+        const cardHeight = card.offsetHeight || 400; // 使用实际高度或估算高度
+        columnHeights[shortestColumnIndex] += cardHeight + gap;
+      });
+      
+      // 继续布局后续卡片
+      cardsToLayout.forEach((card) => {
+        const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+        card.style.left = `${shortestColumnIndex * (cardWidth + gap)}px`;
+        card.style.top = `${columnHeights[shortestColumnIndex]}px`;
+        card.style.width = `${cardWidth}px`;
+        const cardHeight = card.offsetHeight || 400;
+        columnHeights[shortestColumnIndex] += cardHeight + gap;
+      });
+      
+      const maxHeight = Math.max(...columnHeights);
+      gallery.style.height = `${maxHeight}px`;
+      return;
+    }
+  }
+  
+  // 完整布局
   const columnHeights = new Array(columns).fill(0);
   
-  // 为每个卡片设置位置
-  cards.forEach((card) => {
-    // 找到最短的列
+  cardsToLayout.forEach((card) => {
     const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
-    
-    // 设置卡片位置
-    card.style.position = 'absolute';
     card.style.left = `${shortestColumnIndex * (cardWidth + gap)}px`;
     card.style.top = `${columnHeights[shortestColumnIndex]}px`;
     card.style.width = `${cardWidth}px`;
-    
-    // 更新列高度
-    const cardHeight = card.offsetHeight || card.getBoundingClientRect().height;
+    // 使用实际高度，如果还没有加载则使用估算高度（基于宽高比）
+    let cardHeight = card.offsetHeight;
+    if (!cardHeight || cardHeight < 100) {
+      // 估算高度：假设图片宽高比约为 3:4，加上卡片信息区域高度
+      const img = card.querySelector('img');
+      if (img && img.naturalWidth && img.naturalHeight) {
+        const aspectRatio = img.naturalHeight / img.naturalWidth;
+        cardHeight = cardWidth * aspectRatio + 80; // 80px 为卡片信息区域估算高度
+      } else {
+        cardHeight = 400; // 默认估算高度
+      }
+    }
     columnHeights[shortestColumnIndex] += cardHeight + gap;
   });
   
-  // 设置容器高度
   const maxHeight = Math.max(...columnHeights);
   gallery.style.height = `${maxHeight}px`;
 }
+
+// 全局函数，供图片 onload 事件调用
+window.updateMasonryLayout = function(card) {
+  if (card && card.classList.contains('card')) {
+    // 使用 requestAnimationFrame 优化性能
+    requestAnimationFrame(() => {
+      layoutMasonry(card);
+    });
+  }
+};
 
 // 等待所有图片加载完成后重新布局
 function layoutMasonryAfterImagesLoad() {
@@ -393,18 +446,14 @@ tryRenderGalleryFromJSON().then(() => {
   // 画廊数据就绪后，重新收集元素，初始化灯箱
   cards = Array.from(document.querySelectorAll('.gallery .card'));
   
-  // 等待图片加载完成后应用瀑布流布局
-  setTimeout(() => {
-    layoutMasonryAfterImagesLoad();
-    // 监听窗口大小变化
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        layoutMasonry();
-      }, 250);
-    });
-  }, 100);
+  // 监听窗口大小变化
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      layoutMasonry();
+    }, 250);
+  });
   
   initLightboxIfPresent();
   
@@ -858,17 +907,26 @@ async function initLightboxMap(coords) {
         keyboard: false
       }).setView(coords, 13);
       
-      // 添加地图图层（使用 Mapbox）
-      const tileLayer = addMapTileLayer('mapbox');
+      // 检测用户位置并选择合适的地图服务
+      const mapProvider = await detectUserLocation();
+      const tileLayer = addMapTileLayer(mapProvider);
       tileLayer.addTo(lightboxMap);
       
-      // 监听tile错误，如果Mapbox失败则使用备用服务
+      // 监听tile错误，如果主要服务失败则使用备用服务
       let errorCount = 0;
       tileLayer.on('tileerror', function() {
         errorCount++;
         if (errorCount >= 3) {
-          console.warn('Mapbox tiles failed, trying alternative...');
-          const altLayer = addMapTileLayer('international');
+          console.warn('Primary map service failed, trying alternative...');
+          let altProvider = 'osmStandard';
+          if (mapProvider === 'osm') {
+            // 如果 OpenStreetMap 失败，尝试高德地图（中国）或标准 OSM
+            altProvider = 'gaode';
+          } else if (mapProvider === 'gaode') {
+            // 如果高德地图失败，尝试标准 OpenStreetMap
+            altProvider = 'osmStandard';
+          }
+          const altLayer = addMapTileLayer(altProvider);
           altLayer.addTo(lightboxMap);
           lightboxMap.removeLayer(tileLayer);
         }
@@ -1164,33 +1222,22 @@ function getDistance(lat1, lng1, lat2, lng2) {
 
 // 地图服务配置
 const mapTileProviders = {
-  // Mapbox 地图服务
-  mapbox: {
-    url: 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}',
-    attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    id: 'mapbox/dark-v10',
-    accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw',
-    maxZoom: 18,
-    tileSize: 512,
-    zoomOffset: -1,
-    retina: '@2x'
-  },
-  // 国际地图服务（备用）
-  international: {
+  // OpenStreetMap（默认，暗色主题）
+  osm: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19
   },
-  // 中国地图服务（使用OpenStreetMap中国镜像）
-  china: {
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    subdomains: '',
-    maxZoom: 19
+  // 高德地图（中国备用，暗色主题）
+  gaode: {
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    attribution: '© <a href="https://www.amap.com/">高德地图</a>',
+    subdomains: '1234',
+    maxZoom: 18
   },
-  // 备用国际服务
-  internationalAlt: {
+  // OpenStreetMap 标准服务（备用）
+  osmStandard: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     subdomains: 'abc',
@@ -1215,9 +1262,9 @@ async function detectUserLocation() {
       const data = await response.json();
       const countryCode = data.country_code;
       
-      // 如果是中国，使用中国地图服务
+      // 如果是中国，使用高德地图（便于中国访问）
       if (countryCode === 'CN') {
-        return 'china';
+        return 'gaode';
       }
     }
   } catch (error) {
@@ -1227,34 +1274,20 @@ async function detectUserLocation() {
     }
   }
   
-  // 默认使用国际地图服务
-  return 'international';
+  // 默认使用 OpenStreetMap
+  return 'osm';
 }
 
 // 添加地图图层
 function addMapTileLayer(providerKey) {
-  const provider = mapTileProviders[providerKey] || mapTileProviders.mapbox;
+  const provider = mapTileProviders[providerKey] || mapTileProviders.osm;
   
-  if (providerKey === 'mapbox' || (!providerKey && mapTileProviders.mapbox)) {
-    // 使用 Mapbox - 需要替换URL中的占位符
-    const mapboxUrl = provider.url
-      .replace('{id}', provider.id)
-      .replace('{accessToken}', provider.accessToken);
-    
-    return L.tileLayer(mapboxUrl, {
-      attribution: provider.attribution,
-      maxZoom: provider.maxZoom,
-      tileSize: provider.tileSize,
-      zoomOffset: provider.zoomOffset
-    });
-  } else {
-    // 使用其他服务
-    return L.tileLayer(provider.url, {
-      attribution: provider.attribution,
-      subdomains: provider.subdomains || '',
-      maxZoom: provider.maxZoom
-    });
-  }
+  // 统一处理所有地图服务
+  return L.tileLayer(provider.url, {
+    attribution: provider.attribution,
+    subdomains: provider.subdomains || '',
+    maxZoom: provider.maxZoom
+  });
 }
 
 // 初始化地图
@@ -1278,18 +1311,27 @@ async function initPhotoMap() {
       scrollWheelZoom: true
     }).setView([35.0, 105.0], 4);
     
-    // 使用 Mapbox 地图服务
-    const tileLayer = addMapTileLayer('mapbox');
+    // 检测用户位置并选择合适的地图服务
+    const mapProvider = await detectUserLocation();
+    const tileLayer = addMapTileLayer(mapProvider);
     tileLayer.addTo(photoMap);
     
-    // 如果 Mapbox 失败，尝试备用服务
+    // 如果主要服务失败，尝试备用服务
     let errorCount = 0;
     tileLayer.on('tileerror', function() {
       errorCount++;
       // 如果错误次数超过3次，切换到备用服务
       if (errorCount >= 3) {
-        console.warn('Mapbox failed, trying alternative...');
-        const altLayer = addMapTileLayer('international');
+        console.warn('Primary map service failed, trying alternative...');
+        let altProvider = 'international';
+        if (mapProvider === 'apple') {
+          // 如果 Apple Maps 失败，尝试高德地图（中国）或国际地图
+          altProvider = 'gaode';
+        } else if (mapProvider === 'gaode') {
+          // 如果高德地图失败，尝试国际地图
+          altProvider = 'international';
+        }
+        const altLayer = addMapTileLayer(altProvider);
         altLayer.addTo(photoMap);
         photoMap.removeLayer(tileLayer);
       }
