@@ -263,8 +263,8 @@ a { color: inherit; text-decoration: none; }
 
 /* 作品网格 - 瀑布流布局 */
 :root {
-  --card-width: 320px;
-  --masonry-gap: 24px;
+  --card-width: 240px;
+  --masonry-gap: 20px;
 }
 
 .gallery { 
@@ -357,8 +357,8 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 1024px) {
   :root {
-    --card-width: 280px;
-    --masonry-gap: 20px;
+    --card-width: 220px;
+    --masonry-gap: 18px;
   }
 }
 @media (max-width: 640px) {
