@@ -106,6 +106,16 @@ function getOriginalUrl(url) {
 
 function renderCard(it) {
   const exif = it.exif;
+  const tags = [];
+  if (it.location) tags.push(`<span class="tag">📍 ${it.location}</span>`);
+  if (exif && exif.camera) tags.push(`<span class="tag">📷 ${exif.camera}</span>`);
+  if (exif && exif.lens) tags.push(`<span class="tag">🔭 ${exif.lens}</span>`);
+  const tech = [];
+  if (exif && exif.focal) tech.push(exif.focal);
+  if (exif && exif.aperture) tech.push(exif.aperture);
+  if (exif && exif.shutter) tech.push(exif.shutter);
+  if (exif && typeof exif.iso !== 'undefined') tech.push('ISO ' + exif.iso);
+  if (tech.length) tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
   
   // 生成压缩图URL（用于列表显示）
   const thumbnailUrl = getThumbnailUrl(it.src, 800);
@@ -122,17 +132,14 @@ function renderCard(it) {
     ['aperture', exif && exif.aperture],
     ['shutter', exif && exif.shutter],
     ['iso', exif && exif.iso],
-    ['f', exif && exif.f], // 光圈值（如果单独存在）
     ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
-  
-  // 提取位置名称（去除坐标部分）
-  const locationName = it.location ? it.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || it.location : '';
   
   return `
     <figure class="card" ${dataAttrs}>
       <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" />
-      ${locationName ? `<div class="card-location">📍 ${escapeHtml(locationName)}</div>` : ''}
+      <figcaption>${escapeHtml(it.caption || '')}</figcaption>
+      ${tags.length ? `<div class="meta">${tags.join('')}</div>` : ''}
     </figure>
   `;
 }
@@ -376,127 +383,63 @@ function handleMapHighlight(highlightFile, imageUrl) {
 }
 tryRenderStoriesFromJSON();
 
-// 灯箱地图相关变量
-let lightboxMap = null;
-let lightboxMapLayer = null;
-
-// 初始化灯箱地图
-async function initLightboxMap() {
-  const mapContainer = document.getElementById('lightboxMap');
-  if (!mapContainer || typeof L === 'undefined' || !L.map) return;
-  
-  // 如果地图已初始化，直接返回
-  if (lightboxMap) return;
-  
-  try {
-    // 初始化地图
-    lightboxMap = L.map('lightboxMap', {
-      zoomControl: true,
-      scrollWheelZoom: true
-    }).setView([35.0, 105.0], 4);
-    
-    // 检测用户位置并选择合适的地图服务
-    const mapProvider = await detectUserLocation();
-    lightboxMapLayer = addMapTileLayer(mapProvider);
-    lightboxMapLayer.addTo(lightboxMap);
-    
-    // 确保地图正确渲染
-    setTimeout(() => {
-      if (lightboxMap) {
-        lightboxMap.invalidateSize();
-      }
-    }, 100);
-  } catch (error) {
-    console.warn('Failed to initialize lightbox map:', error);
-  }
-}
-
-// 更新灯箱地图显示位置
-async function updateLightboxMap(locationStr) {
-  const mapContainer = document.querySelector('.lightbox-map-container');
-  
-  if (!locationStr) {
-    // 如果没有位置信息，隐藏地图容器
-    if (mapContainer) {
-      mapContainer.style.display = 'none';
-    }
+// 初始化地图（仅在map.html页面）
+function initMapWhenReady() {
+  const mapContainer = document.getElementById('photoMap');
+  if (!mapContainer) {
+    // 不在地图页面，直接返回
     return;
   }
   
-  // 显示地图容器
-  if (mapContainer) {
-    mapContainer.style.display = 'block';
+  // 确保容器有高度
+  if (mapContainer.offsetHeight === 0) {
+    console.warn('Map container has no height, waiting...');
+    setTimeout(initMapWhenReady, 200);
+    return;
   }
   
-  // 确保地图已初始化
-  await initLightboxMap();
-  if (!lightboxMap) return;
-  
-  // 清除现有标记
-  lightboxMap.eachLayer((layer) => {
-    if (layer instanceof L.Marker) {
-      lightboxMap.removeLayer(layer);
-    }
-  });
-  
-  // 获取坐标
-  let coords = parseCoordinates(locationStr);
-  if (!coords) {
-    // 检查缓存
-    const placeName = locationStr.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
-    if (placeName && geocodeCache[placeName]) {
-      const cached = geocodeCache[placeName];
-      if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
-        coords = cached.coords;
-      }
-    }
-  }
-  
-  if (!coords) {
-    // 尝试地理编码
-    coords = await geocodeLocation(locationStr);
-  }
-  
-  if (coords) {
-    // 添加标记
-    const icon = L.divIcon({
-      className: 'lightbox-marker',
-      html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #0b0c0d; box-shadow: 0 0 0 3px rgba(124,196,255,0.5);"></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
-    });
-    
-    const marker = L.marker(coords, { icon: icon }).addTo(lightboxMap);
-    
-    // 创建弹出窗口
-    const locationName = locationStr.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || locationStr;
-    marker.bindPopup(L.popup().setContent(`<div style="font-weight: 700; color: var(--text);">📍 ${escapeHtml(locationName)}</div>`));
-    
-    // 调整地图视图
-    lightboxMap.setView(coords, Math.max(lightboxMap.getZoom(), 10));
-    
-    // 确保地图正确渲染
-    setTimeout(() => {
-      if (lightboxMap) {
-        lightboxMap.invalidateSize();
+  // 检查 Leaflet 是否已加载
+  if (typeof L !== 'undefined' && L.map) {
+    console.log('Initializing map...');
+    initPhotoMap();
+  } else {
+    // 如果还没加载，等待一下再试（最多等待5秒）
+    let attempts = 0;
+    const maxAttempts = 50;
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (typeof L !== 'undefined' && L.map) {
+        clearInterval(checkInterval);
+        console.log('Leaflet.js loaded, initializing map...');
+        initPhotoMap();
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        console.error('Leaflet.js failed to load after 5 seconds');
+        // 显示错误提示
+        const mapContainer = document.getElementById('photoMap');
+        if (mapContainer) {
+          mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted);">地图加载失败，请刷新页面重试。</div>';
+        }
       }
     }, 100);
-  } else {
-    // 如果没有坐标，隐藏地图容器
-    if (mapContainer) {
-      mapContainer.style.display = 'none';
-    }
   }
+}
+
+// 等待页面和脚本都加载完成
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 再等待一下确保 Leaflet 已加载
+    setTimeout(initMapWhenReady, 200);
+  });
+} else {
+  // 如果文档已加载，等待一下确保 Leaflet 已加载
+  setTimeout(initMapWhenReady, 200);
 }
 
 function initLightboxIfPresent() {
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightboxImage');
-  const lightboxLocation = document.getElementById('lightboxLocation');
-  const lightboxDate = document.getElementById('lightboxDate');
-  const lightboxCamera = document.getElementById('lightboxCamera');
-  const lightboxLens = document.getElementById('lightboxLens');
-  const lightboxExif = document.getElementById('lightboxExif');
+  const lightboxInfo = document.getElementById('lightboxInfo');
   const closeBtn = document.querySelector('.lightbox-close');
   const prevBtn = document.querySelector('.lightbox .prev');
   const nextBtn = document.querySelector('.lightbox .next');
@@ -515,58 +458,21 @@ function initLightboxIfPresent() {
     // 移除所有尺寸限制，显示原图
     lightboxImg.src = getOriginalUrl(originalSrc);
     
-    // 更新灯箱详细信息
-    const ds = fig.dataset;
-    
-    // 位置信息
-    if (lightboxLocation && ds.location) {
-      const locationName = ds.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || ds.location;
-      lightboxLocation.querySelector('.detail-text').textContent = locationName;
-      lightboxLocation.style.display = 'flex';
-    } else if (lightboxLocation) {
-      lightboxLocation.style.display = 'none';
+    // 渲染灯箱标签
+    if (lightboxInfo) {
+      const tags = [];
+      const ds = fig.dataset;
+      if (ds.location) tags.push(`<span class=\"tag\">📍 ${ds.location}</span>`);
+      if (ds.camera) tags.push(`<span class=\"tag\">📷 ${ds.camera}</span>`);
+      if (ds.lens) tags.push(`<span class=\"tag\">🔭 ${ds.lens}</span>`);
+      const tech = [];
+      if (ds.focal) tech.push(ds.focal);
+      if (ds.aperture) tech.push(ds.aperture);
+      if (ds.shutter) tech.push(ds.shutter);
+      if (ds.iso) tech.push('ISO ' + ds.iso);
+      if (tech.length) tags.push(`<span class=\"tag\">⚙️ ${tech.join(' · ')}</span>`);
+      lightboxInfo.innerHTML = tags.join('');
     }
-    
-    // 日期信息（如果有）
-    if (lightboxDate) {
-      lightboxDate.style.display = 'none'; // 暂时隐藏，如果JSON中有日期数据可以显示
-    }
-    
-    // 相机信息
-    if (lightboxCamera && ds.camera) {
-      lightboxCamera.querySelector('.detail-text').textContent = ds.camera;
-      lightboxCamera.style.display = 'flex';
-    } else if (lightboxCamera) {
-      lightboxCamera.style.display = 'none';
-    }
-    
-    // 镜头信息
-    if (lightboxLens && ds.lens) {
-      lightboxLens.querySelector('.detail-text').textContent = ds.lens;
-      lightboxLens.style.display = 'flex';
-    } else if (lightboxLens) {
-      lightboxLens.style.display = 'none';
-    }
-    
-    // EXIF信息（格式：ISO 125 | f5.6 | 1/1600 s | 70 mm）
-    const exifParts = [];
-    if (ds.iso) exifParts.push(`ISO ${ds.iso}`);
-    if (ds.aperture) exifParts.push(`f${ds.aperture}`);
-    else if (ds.f && ds.f !== 'undefined' && ds.f !== 'null') exifParts.push(`f${ds.f}`);
-    if (ds.shutter) exifParts.push(ds.shutter);
-    if (ds.focal) exifParts.push(`${ds.focal}`);
-    
-    if (lightboxExif && exifParts.length > 0) {
-      lightboxExif.querySelector('.detail-text').textContent = exifParts.join(' | ');
-      lightboxExif.style.display = 'flex';
-    } else if (lightboxExif) {
-      lightboxExif.style.display = 'none';
-    }
-    
-    // 更新地图显示位置
-    const locationStr = ds.location;
-    updateLightboxMap(locationStr);
-    
     lightbox.classList.add('open');
     lightbox.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';

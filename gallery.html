@@ -10,8 +10,6 @@
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0f0f10" />
     <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -24,6 +22,7 @@
         <nav class="site-nav" aria-label="主导航">
           <a href="./gallery.html">Works</a>
           <a href="./stories.html">Behind the lens</a>
+          <a href="./map.html">Map</a>
           <a href="./about.html">About</a>
         </nav>
       </div>
@@ -71,40 +70,10 @@
 
     <div id="lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
       <button class="lightbox-close" aria-label="关闭预览">×</button>
-      <div class="lightbox-content">
-        <div class="lightbox-image-container">
-          <img id="lightboxImage" alt="预览" />
-          <button class="nav prev" aria-label="上一张">‹</button>
-          <button class="nav next" aria-label="下一张">›</button>
-        </div>
-        <div class="lightbox-sidebar">
-          <div class="lightbox-details">
-            <div id="lightboxLocation" class="lightbox-detail-item">
-              <span class="detail-icon">📍</span>
-              <span class="detail-text"></span>
-            </div>
-            <div id="lightboxDate" class="lightbox-detail-item" style="display: none;">
-              <span class="detail-icon">📅</span>
-              <span class="detail-text"></span>
-            </div>
-            <div id="lightboxCamera" class="lightbox-detail-item" style="display: none;">
-              <span class="detail-icon">📷</span>
-              <span class="detail-text"></span>
-            </div>
-            <div id="lightboxLens" class="lightbox-detail-item" style="display: none;">
-              <span class="detail-icon">🔭</span>
-              <span class="detail-text"></span>
-            </div>
-            <div id="lightboxExif" class="lightbox-detail-item" style="display: none;">
-              <span class="detail-icon">⚙️</span>
-              <span class="detail-text"></span>
-            </div>
-          </div>
-          <div class="lightbox-map-container">
-            <div id="lightboxMap" class="lightbox-map"></div>
-          </div>
-        </div>
-      </div>
+      <img id="lightboxImage" alt="预览" />
+      <div id="lightboxInfo" class="lightbox-info"></div>
+      <button class="nav prev" aria-label="上一张">‹</button>
+      <button class="nav next" aria-label="下一张">›</button>
     </div>
 
     <script src="./script.js"></script>
