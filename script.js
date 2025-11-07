@@ -352,14 +352,56 @@ initLightboxIfPresent();
 })();
 
 function renderMarkdown(text) {
-  // 简易 Markdown：换行、粗体、斜体、行内代码、链接
-  let html = escapeHtml(text);
+  // 简易 Markdown：换行、粗体、斜体、行内代码、链接、图片
+  // 先处理图片（在 escapeHtml 之前，因为图片 URL 不需要转义）
+  let html = text;
+  
+  // 处理图片：![alt](url) 或 ![alt](url "title")
+  // 先提取图片，用占位符替换
+  const images = [];
+  html = html.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]+)")?\)/g, (match, alt, url, title) => {
+    const idx = images.length;
+    images.push({ alt, url, title });
+    return `__IMAGE_PLACEHOLDER_${idx}__`;
+  });
+  
+  // 转义 HTML
+  html = escapeHtml(html);
+  
+  // 恢复图片，转换为 HTML
+  images.forEach((img, idx) => {
+    const titleAttr = img.title ? ` title="${escapeHtml(img.title)}"` : '';
+    const imgHtml = `<figure class="story-image"><img src="${escapeAttr(img.url)}" alt="${escapeHtml(img.alt)}"${titleAttr} loading="lazy" /></figure>`;
+    html = html.replace(`__IMAGE_PLACEHOLDER_${idx}__`, imgHtml);
+  });
+  
+  // 处理粗体
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // 处理斜体：匹配前后不是星号的单个星号对（避免与粗体冲突）
+  html = html.replace(/([^*]|^)\*([^*\n]+?)\*([^*]|$)/g, (match, before, content, after) => {
+    // 确保 before 和 after 不是星号
+    const beforeChar = before === '' ? '' : before[before.length - 1];
+    const afterChar = after === '' ? '' : after[0];
+    if (beforeChar === '*' || afterChar === '*') return match;
+    return (before || '') + '<em>' + content + '</em>' + (after || '');
+  });
+  // 处理行内代码
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // 处理链接（但不处理已经是图片的链接）
   html = html.replace(/\[(.+?)\]\((https?:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  html = html.replace(/\n\n+/g, '</p><p>');
-  return `<p>${html}</p>`;
+  
+  // 按段落分割（双换行），但保留图片作为独立元素
+  const parts = html.split(/\n\n+/);
+  const paragraphs = parts.map(part => {
+    part = part.trim();
+    if (!part) return '';
+    // 如果段落只包含图片，直接返回
+    if (part.startsWith('<figure')) return part;
+    // 否则包装在 <p> 标签中
+    return `<p>${part}</p>`;
+  }).filter(p => p).join('');
+  
+  return paragraphs || '<p></p>';
 }
 
 
