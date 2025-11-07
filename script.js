@@ -82,6 +82,28 @@ async function tryRenderGalleryFromJSON() {
   }
 }
 
+// 生成压缩图片URL（用于列表显示）
+function getThumbnailUrl(originalUrl, width = 800) {
+  if (!originalUrl) return '';
+  
+  // 先移除所有现有的尺寸参数
+  let cleanUrl = originalUrl.replace(/[?&]w=\d+/g, '');
+  // 清理末尾的 ? 或 &
+  cleanUrl = cleanUrl.replace(/[?&]$/, '');
+  
+  // 添加新的尺寸参数
+  const separator = cleanUrl.includes('?') ? '&' : '?';
+  return cleanUrl + separator + `w=${width}`;
+}
+
+// 获取原图URL（用于灯箱显示）
+function getOriginalUrl(url) {
+  if (!url) return '';
+  
+  // 移除所有尺寸参数，返回原图
+  return url.replace(/[?&]w=\d+/g, '').replace(/[?&]$/, '');
+}
+
 function renderCard(it) {
   const exif = it.exif;
   const tags = [];
@@ -94,6 +116,12 @@ function renderCard(it) {
   if (exif && exif.shutter) tech.push(exif.shutter);
   if (exif && typeof exif.iso !== 'undefined') tech.push('ISO ' + exif.iso);
   if (tech.length) tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
+  
+  // 生成压缩图URL（用于列表显示）
+  const thumbnailUrl = getThumbnailUrl(it.src, 800);
+  // 原图URL（用于灯箱）
+  const originalUrl = it.originalSrc || getOriginalUrl(it.src);
+  
   // 数据属性，供灯箱读取
   const dataAttrs = [
     ['category', it.category],
@@ -103,12 +131,14 @@ function renderCard(it) {
     ['focal', exif && exif.focal],
     ['aperture', exif && exif.aperture],
     ['shutter', exif && exif.shutter],
-    ['iso', exif && exif.iso]
+    ['iso', exif && exif.iso],
+    ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
+  
   return `
     <figure class="card" ${dataAttrs}>
-      <img loading="lazy" src="${it.src}" alt="${it.alt || ''}" />
-      <figcaption>${it.caption || ''}</figcaption>
+      <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" />
+      <figcaption>${escapeHtml(it.caption || '')}</figcaption>
       ${tags.length ? `<div class="meta">${tags.join('')}</div>` : ''}
     </figure>
   `;
@@ -134,6 +164,7 @@ async function listImagesFromDirectory(dirUrl, category) {
       items.push({
         category,
         src,
+        originalSrc: src, // 保存原图URL
         alt: (meta && meta.alt) || '',
         caption: (meta && meta.caption) || '',
         location: meta && meta.location,
@@ -421,7 +452,12 @@ function initLightboxIfPresent() {
     currentIndex = (index + vc.length) % vc.length;
     const fig = vc[currentIndex];
     const img = fig.querySelector('img');
-    lightboxImg.src = img.src.replace(/w=\d+/, 'w=1600');
+    
+    // 使用原图URL（从data属性获取，如果没有则使用原始src）
+    const originalSrc = fig.dataset.originalSrc || getOriginalUrl(img.src);
+    // 移除所有尺寸限制，显示原图
+    lightboxImg.src = getOriginalUrl(originalSrc);
+    
     // 渲染灯箱标签
     if (lightboxInfo) {
       const tags = [];
