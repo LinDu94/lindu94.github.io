@@ -383,57 +383,117 @@ function handleMapHighlight(highlightFile, imageUrl) {
 }
 tryRenderStoriesFromJSON();
 
-// 初始化地图（仅在map.html页面）
-function initMapWhenReady() {
-  const mapContainer = document.getElementById('photoMap');
-  if (!mapContainer) {
-    // 不在地图页面，直接返回
-    return;
-  }
+// 灯箱地图相关变量
+let lightboxMap = null;
+let lightboxMapLayer = null;
+
+// 初始化灯箱地图
+async function initLightboxMap() {
+  const mapContainer = document.getElementById('lightboxMap');
+  if (!mapContainer || typeof L === 'undefined' || !L.map) return;
   
-  // 确保容器有高度
-  if (mapContainer.offsetHeight === 0) {
-    console.warn('Map container has no height, waiting...');
-    setTimeout(initMapWhenReady, 200);
-    return;
-  }
+  // 如果地图已初始化，直接返回
+  if (lightboxMap) return;
   
-  // 检查 Leaflet 是否已加载
-  if (typeof L !== 'undefined' && L.map) {
-    console.log('Initializing map...');
-    initPhotoMap();
-  } else {
-    // 如果还没加载，等待一下再试（最多等待5秒）
-    let attempts = 0;
-    const maxAttempts = 50;
-    const checkInterval = setInterval(() => {
-      attempts++;
-      if (typeof L !== 'undefined' && L.map) {
-        clearInterval(checkInterval);
-        console.log('Leaflet.js loaded, initializing map...');
-        initPhotoMap();
-      } else if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-        console.error('Leaflet.js failed to load after 5 seconds');
-        // 显示错误提示
-        const mapContainer = document.getElementById('photoMap');
-        if (mapContainer) {
-          mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted);">地图加载失败，请刷新页面重试。</div>';
-        }
+  try {
+    // 初始化地图
+    lightboxMap = L.map('lightboxMap', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([35.0, 105.0], 4);
+    
+    // 检测用户位置并选择合适的地图服务
+    const mapProvider = await detectUserLocation();
+    lightboxMapLayer = addMapTileLayer(mapProvider);
+    lightboxMapLayer.addTo(lightboxMap);
+    
+    // 确保地图正确渲染
+    setTimeout(() => {
+      if (lightboxMap) {
+        lightboxMap.invalidateSize();
       }
     }, 100);
+  } catch (error) {
+    console.warn('Failed to initialize lightbox map:', error);
   }
 }
 
-// 等待页面和脚本都加载完成
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // 再等待一下确保 Leaflet 已加载
-    setTimeout(initMapWhenReady, 200);
+// 更新灯箱地图显示位置
+async function updateLightboxMap(locationStr) {
+  const mapContainer = document.querySelector('.lightbox-map-container');
+  
+  if (!locationStr) {
+    // 如果没有位置信息，隐藏地图容器
+    if (mapContainer) {
+      mapContainer.style.display = 'none';
+    }
+    return;
+  }
+  
+  // 显示地图容器
+  if (mapContainer) {
+    mapContainer.style.display = 'block';
+  }
+  
+  // 确保地图已初始化
+  await initLightboxMap();
+  if (!lightboxMap) return;
+  
+  // 清除现有标记
+  lightboxMap.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      lightboxMap.removeLayer(layer);
+    }
   });
-} else {
-  // 如果文档已加载，等待一下确保 Leaflet 已加载
-  setTimeout(initMapWhenReady, 200);
+  
+  // 获取坐标
+  let coords = parseCoordinates(locationStr);
+  if (!coords) {
+    // 检查缓存
+    const placeName = locationStr.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
+    if (placeName && geocodeCache[placeName]) {
+      const cached = geocodeCache[placeName];
+      if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+        coords = cached.coords;
+      }
+    }
+  }
+  
+  if (!coords) {
+    // 尝试地理编码
+    coords = await geocodeLocation(locationStr);
+  }
+  
+  if (coords) {
+    // 添加标记
+    const icon = L.divIcon({
+      className: 'lightbox-marker',
+      html: `<div style="background: #7cc4ff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #0b0c0d; box-shadow: 0 0 0 3px rgba(124,196,255,0.5);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    });
+    
+    const marker = L.marker(coords, { icon: icon }).addTo(lightboxMap);
+    
+    // 创建弹出窗口
+    const locationName = locationStr.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || locationStr;
+    marker.bindPopup(L.popup().setContent(`<div style="font-weight: 700; color: var(--text);">📍 ${escapeHtml(locationName)}</div>`));
+    
+    // 调整地图视图
+    lightboxMap.setView(coords, Math.max(lightboxMap.getZoom(), 10));
+    
+    // 确保地图正确渲染
+    setTimeout(() => {
+      if (lightboxMap) {
+        lightboxMap.invalidateSize();
+      }
+    }, 100);
+  } else {
+    // 如果没有坐标，隐藏地图容器
+    if (mapContainer) {
+      mapContainer.style.display = 'none';
+    }
+  }
 }
 
 function initLightboxIfPresent() {
@@ -473,6 +533,11 @@ function initLightboxIfPresent() {
       if (tech.length) tags.push(`<span class=\"tag\">⚙️ ${tech.join(' · ')}</span>`);
       lightboxInfo.innerHTML = tags.join('');
     }
+    
+    // 更新地图显示位置
+    const locationStr = fig.dataset.location;
+    updateLightboxMap(locationStr);
+    
     lightbox.classList.add('open');
     lightbox.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
