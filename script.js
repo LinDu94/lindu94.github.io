@@ -69,6 +69,12 @@ async function tryRenderGalleryFromJSON() {
     if (!res.ok) return false;
     const items = await res.json();
     if (!Array.isArray(items)) return false;
+    
+    // 调试：检查EXIF数据
+    if (items.length > 0 && items[0].exif) {
+      console.log('Sample EXIF data:', items[0].exif);
+    }
+    
     galleryEl.innerHTML = items.map(renderCard).join('');
     // 重新绑定筛选与卡片
     filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
@@ -105,16 +111,23 @@ function getOriginalUrl(url) {
 }
 
 function renderCard(it) {
-  const exif = it.exif;
+  const exif = it.exif || {};
   const tags = [];
   if (it.location) tags.push(`<span class="tag">📍 ${it.location}</span>`);
-  if (exif && exif.camera) tags.push(`<span class="tag">📷 ${exif.camera}</span>`);
-  if (exif && exif.lens) tags.push(`<span class="tag">🔭 ${exif.lens}</span>`);
+  if (exif.camera) tags.push(`<span class="tag">📷 ${escapeHtml(String(exif.camera).trim())}</span>`);
+  if (exif.lens) tags.push(`<span class="tag">🔭 ${escapeHtml(String(exif.lens).trim())}</span>`);
   const tech = [];
-  if (exif && exif.focal) tech.push(exif.focal);
-  if (exif && exif.aperture) tech.push(exif.aperture);
-  if (exif && exif.shutter) tech.push(exif.shutter);
-  if (exif && typeof exif.iso !== 'undefined') tech.push('ISO ' + exif.iso);
+  if (exif.focal) tech.push(String(exif.focal).trim());
+  // 支持 aperture 和 f 两种字段名
+  if (exif.f !== undefined && exif.f !== null) {
+    tech.push(`f/${exif.f}`);
+  } else if (exif.aperture !== undefined && exif.aperture !== null) {
+    tech.push(`f/${exif.aperture}`);
+  }
+  if (exif.shutter) tech.push(String(exif.shutter).trim());
+  if (typeof exif.iso !== 'undefined' && exif.iso !== null) {
+    tech.push('ISO ' + exif.iso);
+  }
   if (tech.length) tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
   
   // 生成压缩图URL（用于列表显示）
@@ -126,12 +139,12 @@ function renderCard(it) {
   const dataAttrs = [
     ['category', it.category],
     ['location', it.location],
-    ['camera', exif && exif.camera],
-    ['lens', exif && exif.lens],
-    ['focal', exif && exif.focal],
-    ['aperture', exif && exif.aperture],
-    ['shutter', exif && exif.shutter],
-    ['iso', exif && exif.iso],
+    ['camera', exif.camera],
+    ['lens', exif.lens],
+    ['focal', exif.focal],
+    ['aperture', exif.f || exif.aperture], // 优先使用 f，如果没有则使用 aperture
+    ['shutter', exif.shutter],
+    ['iso', exif.iso],
     ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
   
@@ -467,7 +480,11 @@ function initLightboxIfPresent() {
       if (ds.lens) tags.push(`<span class=\"tag\">🔭 ${ds.lens}</span>`);
       const tech = [];
       if (ds.focal) tech.push(ds.focal);
-      if (ds.aperture) tech.push(ds.aperture);
+      // 支持 aperture 和 f 两种字段名
+      if (ds.aperture) {
+        // 如果 aperture 已经是 f/ 格式，直接使用；否则添加 f/
+        tech.push(ds.aperture.startsWith('f/') ? ds.aperture : `f/${ds.aperture}`);
+      }
       if (ds.shutter) tech.push(ds.shutter);
       if (ds.iso) tech.push('ISO ' + ds.iso);
       if (tech.length) tags.push(`<span class=\"tag\">⚙️ ${tech.join(' · ')}</span>`);
@@ -1064,13 +1081,20 @@ function createMapPopupContent(locationName, items, centerCoords) {
     
     // EXIF信息
     const exifInfo = [];
-    if (exif.camera) exifInfo.push(`📷 ${exif.camera}`);
-    if (exif.lens) exifInfo.push(`🔭 ${exif.lens}`);
+    if (exif.camera) exifInfo.push(`📷 ${escapeHtml(String(exif.camera).trim())}`);
+    if (exif.lens) exifInfo.push(`🔭 ${escapeHtml(String(exif.lens).trim())}`);
     const tech = [];
-    if (exif.focal) tech.push(exif.focal);
-    if (exif.f) tech.push(`f/${exif.f}`);
-    if (exif.shutter) tech.push(exif.shutter);
-    if (typeof exif.iso !== 'undefined') tech.push(`ISO ${exif.iso}`);
+    if (exif.focal) tech.push(String(exif.focal).trim());
+    // 支持 aperture 和 f 两种字段名
+    if (exif.f !== undefined && exif.f !== null) {
+      tech.push(`f/${exif.f}`);
+    } else if (exif.aperture !== undefined && exif.aperture !== null) {
+      tech.push(`f/${exif.aperture}`);
+    }
+    if (exif.shutter) tech.push(String(exif.shutter).trim());
+    if (typeof exif.iso !== 'undefined' && exif.iso !== null) {
+      tech.push(`ISO ${exif.iso}`);
+    }
     if (tech.length) exifInfo.push(`⚙️ ${tech.join(' · ')}`);
     
     return `
