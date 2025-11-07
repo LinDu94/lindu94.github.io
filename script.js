@@ -110,11 +110,61 @@ function getOriginalUrl(url) {
   return url.replace(/[?&]w=\d+/g, '').replace(/[?&]$/, '');
 }
 
+// 获取相机品牌logo图片路径
+function getCameraBrandLogo(cameraName) {
+  if (!cameraName) return null;
+  
+  const name = String(cameraName).toLowerCase().trim();
+  
+  // 品牌识别（按优先级）
+  let brand = null;
+  
+  // 特殊处理：Hasselblad L2D-20c 和 L3D-100C 是大疆产品
+  if (name.includes('l2d-20c') || name.includes('l3d-100c')) {
+    brand = 'dji';
+  }
+  // DJI 产品识别（优先于 Hasselblad）
+  else if (name.includes('dji')) {
+    brand = 'dji';
+  }
+  else if (name.includes('nikon')) brand = 'nikon';
+  else if (name.includes('canon')) brand = 'canon';
+  else if (name.includes('sony')) brand = 'sony';
+  else if (name.includes('fujifilm') || name.includes('fuji')) brand = 'fujifilm';
+  else if (name.includes('hasselblad')) brand = 'hasselblad';
+  else if (name.includes('leica')) brand = 'leica';
+  else if (name.includes('panasonic') || name.includes('lumix')) brand = 'panasonic';
+  else if (name.includes('olympus') || name.includes('om-')) brand = 'olympus';
+  else if (name.includes('pentax')) brand = 'pentax';
+  
+  if (brand) {
+    // 返回logo图片路径（SVG格式）
+    const logoPath = `./assets/brands/${brand}.svg`;
+    return logoPath;
+  }
+  
+  return null;
+}
+
+// 生成相机品牌logo HTML
+function renderCameraBrandLogo(cameraName) {
+  const logoPath = getCameraBrandLogo(cameraName);
+  if (logoPath) {
+    const brandName = String(cameraName).split(' ')[0];
+    return `<img src="${escapeAttr(logoPath)}" alt="${escapeHtml(brandName)}" class="camera-brand-logo" onerror="this.style.display='none';" />`;
+  }
+  return '';
+}
+
 function renderCard(it) {
   const exif = it.exif || {};
   const tags = [];
   if (it.location) tags.push(`<span class="tag">📍 ${it.location}</span>`);
-  if (exif.camera) tags.push(`<span class="tag">📷 ${escapeHtml(String(exif.camera).trim())}</span>`);
+  if (exif.camera) {
+    const cameraName = String(exif.camera).trim();
+    const logoHtml = renderCameraBrandLogo(cameraName);
+    tags.push(`<span class="tag camera-tag">${logoHtml}<span class="camera-name">${escapeHtml(cameraName)}</span></span>`);
+  }
   if (exif.lens) tags.push(`<span class="tag">🔭 ${escapeHtml(String(exif.lens).trim())}</span>`);
   const tech = [];
   if (exif.focal) tech.push(String(exif.focal).trim());
@@ -475,20 +525,74 @@ function initLightboxIfPresent() {
     if (lightboxInfo) {
       const tags = [];
       const ds = fig.dataset;
-      if (ds.location) tags.push(`<span class=\"tag\">📍 ${ds.location}</span>`);
-      if (ds.camera) tags.push(`<span class=\"tag\">📷 ${ds.camera}</span>`);
-      if (ds.lens) tags.push(`<span class=\"tag\">🔭 ${ds.lens}</span>`);
-      const tech = [];
-      if (ds.focal) tech.push(ds.focal);
-      // 支持 aperture 和 f 两种字段名
-      if (ds.aperture) {
-        // 如果 aperture 已经是 f/ 格式，直接使用；否则添加 f/
-        tech.push(ds.aperture.startsWith('f/') ? ds.aperture : `f/${ds.aperture}`);
+      
+      // 调试：输出数据属性
+      console.log('Lightbox EXIF data:', {
+        location: ds.location,
+        camera: ds.camera,
+        lens: ds.lens,
+        focal: ds.focal,
+        aperture: ds.aperture,
+        shutter: ds.shutter,
+        iso: ds.iso
+      });
+      
+      // 地点
+      if (ds.location) {
+        tags.push(`<span class="tag">📍 ${escapeHtml(String(ds.location).trim())}</span>`);
       }
-      if (ds.shutter) tech.push(ds.shutter);
-      if (ds.iso) tech.push('ISO ' + ds.iso);
-      if (tech.length) tags.push(`<span class=\"tag\">⚙️ ${tech.join(' · ')}</span>`);
-      lightboxInfo.innerHTML = tags.join('');
+      
+      // 相机（带品牌logo）
+      if (ds.camera) {
+        const cameraName = String(ds.camera).trim();
+        if (cameraName) {
+          const logoHtml = renderCameraBrandLogo(cameraName);
+          tags.push(`<span class="tag camera-tag">${logoHtml}<span class="camera-name">${escapeHtml(cameraName)}</span></span>`);
+        }
+      }
+      
+      // 镜头
+      if (ds.lens) {
+        const lensName = String(ds.lens).trim();
+        if (lensName) {
+          tags.push(`<span class="tag">🔭 ${escapeHtml(lensName)}</span>`);
+        }
+      }
+      
+      // 技术参数
+      const tech = [];
+      if (ds.focal) {
+        const focal = String(ds.focal).trim();
+        if (focal) tech.push(focal);
+      }
+      
+      // 光圈（支持数值和格式化字符串）
+      if (ds.aperture) {
+        const aperture = String(ds.aperture).trim();
+        if (aperture) {
+          if (aperture.startsWith('f/')) {
+            tech.push(aperture);
+          } else {
+            tech.push(`f/${aperture}`);
+          }
+        }
+      }
+      
+      if (ds.shutter) {
+        const shutter = String(ds.shutter).trim();
+        if (shutter) tech.push(shutter);
+      }
+      
+      if (ds.iso) {
+        const iso = String(ds.iso).trim();
+        if (iso) tech.push('ISO ' + iso);
+      }
+      
+      if (tech.length) {
+        tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
+      }
+      
+      lightboxInfo.innerHTML = tags.length > 0 ? tags.join('') : '<span class="tag" style="color: var(--muted);">无 EXIF 信息</span>';
     }
     lightbox.classList.add('open');
     lightbox.setAttribute('aria-hidden', 'false');
@@ -1081,7 +1185,11 @@ function createMapPopupContent(locationName, items, centerCoords) {
     
     // EXIF信息
     const exifInfo = [];
-    if (exif.camera) exifInfo.push(`📷 ${escapeHtml(String(exif.camera).trim())}`);
+    if (exif.camera) {
+      const cameraName = String(exif.camera).trim();
+      const logoHtml = renderCameraBrandLogo(cameraName);
+      exifInfo.push(`${logoHtml}${escapeHtml(cameraName)}`);
+    }
     if (exif.lens) exifInfo.push(`🔭 ${escapeHtml(String(exif.lens).trim())}`);
     const tech = [];
     if (exif.focal) tech.push(String(exif.focal).trim());

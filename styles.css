@@ -270,6 +270,34 @@ a { color: inherit; text-decoration: none; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
 .tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: #111316; border: 1px solid var(--border); color: var(--muted); font-size: 12px; }
 
+.camera-brand-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  /* SVG 优化 */
+  fill: currentColor;
+  color: var(--muted);
+}
+
+.camera-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.camera-name {
+  display: inline;
+  vertical-align: middle;
+}
+
+/* 如果logo加载失败，隐藏logo但保持布局 */
+.camera-brand-logo[style*="display: none"] {
+  display: none !important;
+}
+
 @media (max-width: 1024px) {
   .card { grid-column: span 6; }
 }
