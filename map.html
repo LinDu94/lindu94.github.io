@@ -3,13 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>林渡的阅世之旅</title>
-    <meta name="description" content="" />
-    <meta property="og:title" content="林渡的阅世之旅" />
-    <meta property="og:description" content="" />
+    <title>地图 - 林渡的阅世之旅</title>
+    <meta name="description" content="在地图上查看拍摄地点和作品分布。" />
+    <meta property="og:title" content="地图 - 林渡的阅世之旅" />
+    <meta property="og:description" content="在地图上查看拍摄地点和作品分布。" />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0f0f10" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -29,21 +31,10 @@
     </header>
 
     <main>
-      <section id="about" class="section">
-        <div class=container>
-          <div>
-            <h2>个人简介</h2>
-            <p>
-             上海交通大学传播学大三在读
-            </p>
-            <ul class="features">
-              <li>seeker追光者小组成员</li>
-              <li>视觉中国｜图虫｜米拍签约摄影师</li>
-              <li>2024年适马华东影赛《目里诗歌》创意组三等奖</li>
-              <li>我希望记录下世界美好的每一帧</li>
-            </ul>
-          </div>
-          <img src="https://photo-art.pages.dev/file/1761970405295_88B8D4B2-11EB-4D54-A133-AB1BCF4C7A27_1_105_c.jpeg" class="about-photo" alt="个人照片">
+      <section class="section map-page">
+        <div class="container">
+          <h2>Map</h2>
+          <div id="photoMap" class="photo-map-container map-page-container"></div>
         </div>
       </section>
     </main>
@@ -61,6 +52,5 @@
 
     <script src="./script.js"></script>
   </body>
-  </html>
-
+</html>
 

@@ -74,6 +74,8 @@ async function tryRenderGalleryFromJSON() {
     filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
     cards = Array.from(document.querySelectorAll('.gallery .card'));
     bindFilters();
+    
+    
     return true;
   } catch (_) {
     return false;
@@ -235,6 +237,49 @@ tryRenderGalleryFromJSON().then(() => {
   // 画廊数据就绪后，重新收集元素，初始化灯箱
   cards = Array.from(document.querySelectorAll('.gallery .card'));
   initLightboxIfPresent();
+  
+  // 检查是否需要处理从地图跳转过来的情况
+  const params = new URLSearchParams(location.search);
+  const highlightFile = params.get('highlight');
+  const imageUrl = params.get('imageUrl');
+  
+  if (highlightFile || imageUrl) {
+    // 等待图片加载完成
+    const images = Array.from(document.querySelectorAll('.gallery .card img'));
+    let loadedCount = 0;
+    const totalImages = images.length;
+    
+    if (totalImages === 0) {
+      // 如果没有图片，直接尝试匹配
+      handleMapHighlight(highlightFile, imageUrl);
+    } else {
+      // 等待所有图片加载完成
+      images.forEach(img => {
+        if (img.complete) {
+          loadedCount++;
+        } else {
+          img.addEventListener('load', () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              handleMapHighlight(highlightFile, imageUrl);
+            }
+          });
+          img.addEventListener('error', () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              handleMapHighlight(highlightFile, imageUrl);
+            }
+          });
+        }
+      });
+      
+      // 如果所有图片已经加载完成
+      if (loadedCount === totalImages) {
+        handleMapHighlight(highlightFile, imageUrl);
+      }
+    }
+  }
+  
   // 若没有任何图片，给出指引
   const galleryEl = document.getElementById('gallery');
   if (galleryEl && galleryEl.children.length === 0) {
@@ -245,7 +290,72 @@ tryRenderGalleryFromJSON().then(() => {
     galleryEl.parentElement.appendChild(hint);
   }
 });
+
+// 处理从地图跳转过来的高亮和打开灯箱
+function handleMapHighlight(highlightFile, imageUrl) {
+  setTimeout(() => {
+    // 确保灯箱已初始化
+    if (cards.length === 0) {
+      cards = Array.from(document.querySelectorAll('.gallery .card'));
+      initLightboxIfPresent();
+    }
+    
+    let targetCard = null;
+    
+    // 优先使用完整URL匹配
+    if (imageUrl) {
+      const decodedUrl = decodeURIComponent(imageUrl);
+      targetCard = cards.find(card => {
+        const img = card.querySelector('img');
+        if (!img) return false;
+        // 比较完整URL（忽略协议和参数）
+        const cardUrl = img.src.split('?')[0];
+        const targetUrl = decodedUrl.split('?')[0];
+        return cardUrl === targetUrl || cardUrl.includes(targetUrl.split('/').pop());
+      });
+    }
+    
+    // 如果URL匹配失败，尝试文件名匹配
+    if (!targetCard && highlightFile) {
+      const decodedFile = decodeURIComponent(highlightFile);
+      targetCard = cards.find(card => {
+        const img = card.querySelector('img');
+        if (!img) return false;
+        // 匹配文件名或alt文本
+        const imgFileName = img.src.split('/').pop().split('?')[0];
+        return imgFileName.includes(decodedFile) || 
+               decodedFile.includes(imgFileName) ||
+               (img.alt && img.alt.includes(decodedFile));
+      });
+    }
+    
+    if (targetCard) {
+      // 滚动到目标卡片
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // 高亮显示
+      targetCard.style.outline = '2px solid var(--primary)';
+      targetCard.style.outlineOffset = '4px';
+      
+      // 等待滚动完成后再打开灯箱
+      setTimeout(() => {
+        // 确保灯箱已初始化
+        initLightboxIfPresent();
+        // 触发点击打开灯箱
+        targetCard.click();
+        // 清除URL参数
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }, 800);
+    }
+  }, 100);
+}
 tryRenderStoriesFromJSON();
+
+// 初始化地图（仅在map.html页面）
+if (document.getElementById('photoMap') && typeof L !== 'undefined') {
+  initPhotoMap();
+}
 
 function initLightboxIfPresent() {
   const lightbox = document.getElementById('lightbox');
@@ -403,5 +513,372 @@ function renderMarkdown(text) {
   
   return paragraphs || '<p></p>';
 }
+
+// 地图功能
+let photoMap = null;
+let galleryItems = [];
+
+// 解析坐标：支持 "N33° 4' 34.747\" E101° 8' 54.247\"" 格式
+function parseCoordinates(locationStr) {
+  if (!locationStr) return null;
+  
+  // 尝试解析度分秒格式：N33° 4' 34.747" E101° 8' 54.247"
+  const dmsMatch = locationStr.match(/N([\d.]+)°\s*([\d.]+)'\s*([\d.]+)"\s*E([\d.]+)°\s*([\d.]+)'\s*([\d.]+)"/);
+  if (dmsMatch) {
+    const lat = parseFloat(dmsMatch[1]) + parseFloat(dmsMatch[2]) / 60 + parseFloat(dmsMatch[3]) / 3600;
+    const lng = parseFloat(dmsMatch[4]) + parseFloat(dmsMatch[5]) / 60 + parseFloat(dmsMatch[6]) / 3600;
+    return [lat, lng];
+  }
+  
+  // 尝试解析简单坐标格式：lat, lng 或 [lat, lng]
+  const coordMatch = locationStr.match(/([\d.]+)[,\s]+([\d.]+)/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return [lat, lng];
+    }
+  }
+  
+  return null;
+}
+
+// 地理编码缓存（使用localStorage）
+const GEOCODE_CACHE_KEY = 'lindu_geocode_cache';
+let geocodeCache = {};
+
+// 加载缓存
+try {
+  const cached = localStorage.getItem(GEOCODE_CACHE_KEY);
+  if (cached) {
+    geocodeCache = JSON.parse(cached);
+  }
+} catch (e) {
+  console.warn('Failed to load geocode cache:', e);
+}
+
+// 保存缓存
+function saveGeocodeCache() {
+  try {
+    localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(geocodeCache));
+  } catch (e) {
+    console.warn('Failed to save geocode cache:', e);
+  }
+}
+
+// 地理编码队列，用于控制API调用频率
+let geocodeQueue = [];
+let geocodeProcessing = false;
+
+// 使用Nominatim API将地名转换为坐标
+async function geocodeLocation(locationStr) {
+  if (!locationStr) return null;
+  
+  // 先尝试解析坐标
+  const coords = parseCoordinates(locationStr);
+  if (coords) return coords;
+  
+  // 提取地名（去除坐标部分）
+  const placeName = locationStr.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
+  if (!placeName) return null;
+  
+  // 检查缓存
+  if (geocodeCache[placeName]) {
+    const cached = geocodeCache[placeName];
+    // 检查缓存是否过期（30天）
+    if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+      return cached.coords;
+    }
+  }
+  
+  // 使用队列处理地理编码请求，避免过快调用API
+  return new Promise((resolve) => {
+    geocodeQueue.push({ placeName, resolve });
+    processGeocodeQueue();
+  });
+}
+
+// 处理地理编码队列（每500ms最多1个请求，更快但仍遵守API限制）
+async function processGeocodeQueue() {
+  if (geocodeProcessing || geocodeQueue.length === 0) return;
+  
+  geocodeProcessing = true;
+  const { placeName, resolve } = geocodeQueue.shift();
+  
+  try {
+    // 再次检查缓存（可能在队列等待期间被其他请求缓存）
+    if (geocodeCache[placeName]) {
+      const cached = geocodeCache[placeName];
+      if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+        resolve(cached.coords);
+        geocodeProcessing = false;
+        if (geocodeQueue.length > 0) {
+          setTimeout(processGeocodeQueue, 100);
+        }
+        return;
+      }
+    }
+    
+    // 延迟500ms以避免API限制（比1秒快但仍遵守限制）
+    await new Promise(r => setTimeout(r, 500));
+    
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'LinduGallery/1.0'
+        }
+      }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      // 缓存结果
+      geocodeCache[placeName] = {
+        coords: coords,
+        timestamp: Date.now()
+      };
+      saveGeocodeCache();
+      resolve(coords);
+    } else {
+      resolve(null);
+    }
+  } catch (error) {
+    console.warn('Geocoding failed:', error);
+    resolve(null);
+  } finally {
+    geocodeProcessing = false;
+    // 继续处理队列
+    if (geocodeQueue.length > 0) {
+      setTimeout(processGeocodeQueue, 500);
+    }
+  }
+}
+
+// 计算两点之间的距离（公里）
+function getDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // 地球半径（公里）
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// 初始化地图
+async function initPhotoMap() {
+  const mapContainer = document.getElementById('photoMap');
+  if (!mapContainer || typeof L === 'undefined') return;
+  
+  // 获取画廊数据
+  try {
+    const res = await fetch('./data/gallery.json');
+    if (!res.ok) return;
+    galleryItems = await res.json();
+    if (!Array.isArray(galleryItems) || galleryItems.length === 0) return;
+  } catch (_) {
+    return;
+  }
+  
+  // 初始化地图（默认中心点：中国）
+  photoMap = L.map('photoMap', {
+    zoomControl: true,
+    scrollWheelZoom: true
+  }).setView([35.0, 105.0], 4);
+  
+  // 添加深色主题的瓦片图层
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(photoMap);
+  
+  // 处理所有图片的位置（先显示已有坐标的，然后异步加载需要地理编码的）
+  const locationGroups = new Map(); // key: "lat,lng", value: {coords, items, locationName}
+  const itemsNeedingGeocode = [];
+  
+  // 第一遍：快速处理已有坐标的（同步解析，不调用API）
+  for (const item of galleryItems) {
+    if (!item.location) continue;
+    
+    // 先尝试快速解析坐标（不调用API）
+    let coords = parseCoordinates(item.location);
+    
+    // 如果解析失败，检查缓存（同步）
+    if (!coords) {
+      const placeName = item.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
+      if (placeName && geocodeCache[placeName]) {
+        const cached = geocodeCache[placeName];
+        if (Date.now() - cached.timestamp < 30 * 24 * 60 * 60 * 1000) {
+          coords = cached.coords;
+        }
+      }
+    }
+    
+    if (coords) {
+      const key = `${coords[0].toFixed(4)},${coords[1].toFixed(4)}`;
+      if (!locationGroups.has(key)) {
+        locationGroups.set(key, {
+          coords: coords,
+          items: [],
+          locationName: item.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || item.location
+        });
+      }
+      locationGroups.get(key).items.push(item);
+    } else {
+      // 需要地理编码的，加入队列
+      itemsNeedingGeocode.push(item);
+    }
+  }
+  
+  // 立即显示已有坐标的标记
+  addMarkersToMap(locationGroups);
+  
+  // 如果有已显示的标记，先调整地图视图
+  if (locationGroups.size > 0) {
+    const bounds = Array.from(locationGroups.values()).map(g => g.coords);
+    photoMap.fitBounds(bounds, { padding: [50, 50] });
+  }
+  
+  // 异步处理需要地理编码的（不阻塞初始显示）
+  if (itemsNeedingGeocode.length > 0) {
+    // 批量处理，每完成一个就立即显示
+    for (const item of itemsNeedingGeocode) {
+      const coords = await geocodeLocation(item.location);
+      if (coords) {
+        const key = `${coords[0].toFixed(4)},${coords[1].toFixed(4)}`;
+        if (!locationGroups.has(key)) {
+          locationGroups.set(key, {
+            coords: coords,
+            items: [],
+            locationName: item.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim() || item.location
+          });
+          // 立即添加新标记
+          addMarkersToMap(new Map([[key, locationGroups.get(key)]]));
+        } else {
+          locationGroups.get(key).items.push(item);
+          // 更新已有标记的弹出窗口
+          updateMarkerPopup(key, locationGroups.get(key));
+        }
+      }
+    }
+    
+    // 最后重新调整视图以包含所有标记
+    if (locationGroups.size > 0) {
+      const bounds = Array.from(locationGroups.values()).map(g => g.coords);
+      photoMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }
+}
+
+// 添加标记到地图
+function addMarkersToMap(locationGroups) {
+  locationGroups.forEach((group, key) => {
+    const { coords, items, locationName } = group;
+    
+    // 检查标记是否已存在
+    if (group.marker) return;
+    
+    // 创建自定义图标
+    const icon = L.divIcon({
+      className: 'photo-marker',
+      html: `<div style="background: #7cc4ff; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #0b0c0d; box-shadow: 0 0 0 2px rgba(124,196,255,0.5);"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+    
+    // 创建标记
+    const marker = L.marker(coords, { icon: icon }).addTo(photoMap);
+    group.marker = marker;
+    
+    // 创建弹出窗口内容
+    const popupContent = createMapPopupContent(locationName, items, coords);
+    const popup = L.popup({
+      maxWidth: 400,
+      className: 'photo-map-popup'
+    }).setContent(popupContent);
+    
+    marker.bindPopup(popup);
+    
+    // 绑定弹出窗口打开后的事件
+    marker.on('popupopen', function() {
+      const popupEl = this.getPopup().getElement();
+      if (!popupEl) return;
+      
+      // 绑定图片点击事件
+      const photoElements = popupEl.querySelectorAll('.map-popup-photo');
+      photoElements.forEach(photoEl => {
+        photoEl.addEventListener('click', function() {
+          const src = this.dataset.src;
+          if (!src) return;
+          
+          // 如果在gallery页面，尝试找到对应的卡片并触发点击（打开灯箱）
+          const cards = Array.from(document.querySelectorAll('.gallery .card'));
+          if (cards.length > 0) {
+            const targetCard = cards.find(card => {
+              const img = card.querySelector('img');
+              return img && (img.src === src || img.src.includes(src.split('/').pop()));
+            });
+            
+            if (targetCard) {
+              targetCard.click();
+              // 关闭弹出窗口
+              marker.closePopup();
+              return;
+            }
+          }
+          
+          // 如果不在gallery页面或找不到卡片，跳转到gallery页面并尝试定位到该图片
+          // 通过URL参数传递图片的完整URL或文件名
+          const fileName = src.split('/').pop();
+          // 使用完整URL的base64编码，或者使用文件名
+          const imageUrl = encodeURIComponent(src);
+          window.location.href = `./gallery.html?highlight=${encodeURIComponent(fileName)}&imageUrl=${imageUrl}`;
+        });
+      });
+    });
+  });
+}
+
+// 更新已有标记的弹出窗口内容
+function updateMarkerPopup(key, group) {
+  if (!group.marker) return;
+  const { coords, items, locationName } = group;
+  const popupContent = createMapPopupContent(locationName, items, coords);
+  group.marker.setPopupContent(popupContent);
+}
+
+// 创建地图弹出窗口内容
+function createMapPopupContent(locationName, items, centerCoords) {
+  // 按距离排序（最近的在前）
+  const sortedItems = items.map(item => {
+    const itemCoords = parseCoordinates(item.location);
+    let distance = 0;
+    if (itemCoords) {
+      distance = getDistance(centerCoords[0], centerCoords[1], itemCoords[0], itemCoords[1]);
+    }
+    return { ...item, distance };
+  }).sort((a, b) => a.distance - b.distance);
+  
+  const photosHtml = sortedItems.slice(0, 9).map((item, idx) => {
+    return `
+      <div class="map-popup-photo" data-index="${idx}" data-src="${escapeAttr(item.src)}">
+        <img src="${escapeAttr(item.src)}" alt="${escapeHtml(item.alt || '')}" loading="lazy" />
+        ${sortedItems.length > 9 && idx === 8 ? `<div class="map-popup-photo-count">+${sortedItems.length - 9}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  return `
+    <div class="map-popup-content">
+      <div class="map-popup-title">📍 ${escapeHtml(locationName)}</div>
+      <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">${sortedItems.length} 张照片</div>
+      <div class="map-popup-photos">${photosHtml}</div>
+    </div>
+  `;
+}
+
 
 
