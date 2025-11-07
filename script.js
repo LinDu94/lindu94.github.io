@@ -177,25 +177,8 @@ function renderCard(it) {
     ['original-src', originalUrl] // 存储原图URL
   ].filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `data-${k}="${String(v).replace(/"/g,'&quot;')}"`).join(' ');
   
-  // 解析地点信息
-  let locationName = '';
-  let country = '';
-  if (it.location) {
-    // 提取地点名称（移除坐标部分）
-    locationName = it.location.replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
-    // 如果包含国家信息，提取出来
-    if (locationName.includes('·')) {
-      const parts = locationName.split('·');
-      locationName = parts[0].trim();
-      country = parts[parts.length - 1].trim();
-    } else if (locationName.includes('中国')) {
-      country = '中国';
-      locationName = locationName.replace('中国', '').trim();
-    } else {
-      // 默认国家
-      country = '';
-    }
-  }
+  // 获取图片名称（优先使用alt，如果没有则使用caption）
+  const imageName = it.alt || it.caption || '';
   
   return `
     <figure class="card" ${dataAttrs}>
@@ -203,11 +186,86 @@ function renderCard(it) {
         <img loading="lazy" src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(it.alt || '')}" />
       </div>
       <div class="card-info">
-        ${locationName ? `<div class="card-location">${escapeHtml(locationName)}</div>` : ''}
-        ${country ? `<div class="card-country">${escapeHtml(country)}</div>` : ''}
+        ${imageName ? `<div class="card-location">${escapeHtml(imageName)}</div>` : ''}
       </div>
     </figure>
   `;
+}
+
+// 瀑布流布局函数
+function layoutMasonry() {
+  const gallery = document.getElementById('gallery');
+  if (!gallery) return;
+  
+  const cards = Array.from(gallery.querySelectorAll('.card'));
+  if (cards.length === 0) return;
+  
+  // 获取容器宽度和卡片宽度
+  const containerWidth = gallery.offsetWidth;
+  const cardWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width') || '320');
+  const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--masonry-gap') || '24');
+  
+  // 计算列数
+  const columns = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
+  
+  // 初始化列高度数组
+  const columnHeights = new Array(columns).fill(0);
+  
+  // 为每个卡片设置位置
+  cards.forEach((card) => {
+    // 找到最短的列
+    const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+    
+    // 设置卡片位置
+    card.style.position = 'absolute';
+    card.style.left = `${shortestColumnIndex * (cardWidth + gap)}px`;
+    card.style.top = `${columnHeights[shortestColumnIndex]}px`;
+    card.style.width = `${cardWidth}px`;
+    
+    // 更新列高度
+    const cardHeight = card.offsetHeight || card.getBoundingClientRect().height;
+    columnHeights[shortestColumnIndex] += cardHeight + gap;
+  });
+  
+  // 设置容器高度
+  const maxHeight = Math.max(...columnHeights);
+  gallery.style.height = `${maxHeight}px`;
+}
+
+// 等待所有图片加载完成后重新布局
+function layoutMasonryAfterImagesLoad() {
+  const gallery = document.getElementById('gallery');
+  if (!gallery) return;
+  
+  const cards = Array.from(gallery.querySelectorAll('.card'));
+  const images = cards.map(card => card.querySelector('img')).filter(img => img);
+  
+  let loadedCount = 0;
+  const totalImages = images.length;
+  
+  if (totalImages === 0) {
+    layoutMasonry();
+    return;
+  }
+  
+  const checkAndLayout = () => {
+    loadedCount++;
+    if (loadedCount === totalImages) {
+      // 所有图片加载完成，重新布局
+      setTimeout(() => {
+        layoutMasonry();
+      }, 50);
+    }
+  };
+  
+  images.forEach(img => {
+    if (img.complete) {
+      checkAndLayout();
+    } else {
+      img.addEventListener('load', checkAndLayout, { once: true });
+      img.addEventListener('error', checkAndLayout, { once: true });
+    }
+  });
 }
 
 async function listImagesFromDirectory(dirUrl, category) {
@@ -333,6 +391,20 @@ function bindStoryToggle() {
 tryRenderGalleryFromJSON().then(() => {
   // 画廊数据就绪后，重新收集元素，初始化灯箱
   cards = Array.from(document.querySelectorAll('.gallery .card'));
+  
+  // 等待图片加载完成后应用瀑布流布局
+  setTimeout(() => {
+    layoutMasonryAfterImagesLoad();
+    // 监听窗口大小变化
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        layoutMasonry();
+      }, 250);
+    });
+  }, 100);
+  
   initLightboxIfPresent();
   
   // 检查是否需要处理从地图跳转过来的情况
