@@ -596,78 +596,103 @@ function initLightboxIfPresent() {
     // 移除所有尺寸限制，显示原图
     lightboxImg.src = getOriginalUrl(originalSrc);
     
-    // 渲染灯箱标签
+    // 渲染灯箱信息（表格格式）
     if (lightboxInfo) {
-      const tags = [];
       const ds = fig.dataset;
+      const img = fig.querySelector('img');
+      const imageTitle = img ? img.alt || '' : '';
       
-      // 调试：输出数据属性
-      console.log('Lightbox EXIF data:', {
-        location: ds.location,
-        camera: ds.camera,
-        lens: ds.lens,
-        focal: ds.focal,
-        aperture: ds.aperture,
-        shutter: ds.shutter,
-        iso: ds.iso
-      });
-      
-      // 地点
+      // 解析地点信息
+      let locationText = '';
       if (ds.location) {
-        tags.push(`<span class="tag">📍 ${escapeHtml(String(ds.location).trim())}</span>`);
+        locationText = String(ds.location).trim().replace(/N[\d.]+°[\s\d.'"]+E[\d.]+°[\s\d.'"]+/g, '').trim();
       }
       
-      // 相机（带品牌logo）
-      if (ds.camera) {
-        const cameraName = String(ds.camera).trim();
-        if (cameraName) {
+      // 构建表格HTML
+      let tableRows = [];
+      
+      // 作品标题
+      if (imageTitle) {
+        tableRows.push(`
+          <tr class="lightbox-info-row">
+            <td class="lightbox-info-label">作品标题</td>
+            <td class="lightbox-info-value">${escapeHtml(imageTitle)}</td>
+          </tr>
+        `);
+      }
+      
+      // 位置信息
+      if (locationText) {
+        tableRows.push(`
+          <tr class="lightbox-info-row">
+            <td class="lightbox-info-label">位置</td>
+            <td class="lightbox-info-value">${escapeHtml(locationText)}</td>
+          </tr>
+        `);
+      }
+      
+      // 相机和镜头
+      if (ds.camera || ds.lens) {
+        let cameraLens = '';
+        if (ds.camera) {
+          const cameraName = String(ds.camera).trim();
           const logoHtml = renderCameraBrandLogo(cameraName);
-          tags.push(`<span class="tag camera-tag">${logoHtml}<span class="camera-name">${escapeHtml(cameraName)}</span></span>`);
+          cameraLens = `${logoHtml}${escapeHtml(cameraName)}`;
+        }
+        if (ds.lens) {
+          if (cameraLens) cameraLens += '<br>';
+          cameraLens += escapeHtml(String(ds.lens).trim());
+        }
+        if (cameraLens) {
+          tableRows.push(`
+            <tr class="lightbox-info-row">
+              <td class="lightbox-info-label">相机 / 镜头</td>
+              <td class="lightbox-info-value">${cameraLens}</td>
+            </tr>
+          `);
         }
       }
       
-      // 镜头
-      if (ds.lens) {
-        const lensName = String(ds.lens).trim();
-        if (lensName) {
-          tags.push(`<span class="tag">🔭 ${escapeHtml(lensName)}</span>`);
-        }
+      // 曝光设置
+      const exposure = [];
+      if (ds.iso) {
+        exposure.push(`ISO ${escapeHtml(String(ds.iso).trim())}`);
       }
-      
-      // 技术参数
-      const tech = [];
-      if (ds.focal) {
-        const focal = String(ds.focal).trim();
-        if (focal) tech.push(focal);
-      }
-      
-      // 光圈（支持数值和格式化字符串）
       if (ds.aperture) {
         const aperture = String(ds.aperture).trim();
-        if (aperture) {
-          if (aperture.startsWith('f/')) {
-            tech.push(aperture);
-          } else {
-            tech.push(`f/${aperture}`);
-          }
+        if (aperture.startsWith('f/')) {
+          exposure.push(escapeHtml(aperture));
+        } else {
+          exposure.push(`f/${escapeHtml(aperture)}`);
         }
       }
-      
       if (ds.shutter) {
-        const shutter = String(ds.shutter).trim();
-        if (shutter) tech.push(shutter);
+        exposure.push(escapeHtml(String(ds.shutter).trim()));
+      }
+      if (ds.focal) {
+        exposure.push(escapeHtml(String(ds.focal).trim()));
       }
       
-      if (ds.iso) {
-        const iso = String(ds.iso).trim();
-        if (iso) tech.push('ISO ' + iso);
+      if (exposure.length > 0) {
+        tableRows.push(`
+          <tr class="lightbox-info-row">
+            <td class="lightbox-info-label">曝光设置</td>
+            <td class="lightbox-info-value">${exposure.join(' | ')}</td>
+          </tr>
+        `);
       }
       
-      if (tech.length) {
-        tags.push(`<span class="tag">⚙️ ${tech.join(' · ')}</span>`);
+      if (tableRows.length > 0) {
+        lightboxInfo.innerHTML = `
+          <table class="lightbox-info-table">
+            <tbody>
+              ${tableRows.join('')}
+            </tbody>
+          </table>
+        `;
+      } else {
+        lightboxInfo.innerHTML = '<div class="lightbox-info-empty">无信息</div>';
       }
-      
-      lightboxInfo.innerHTML = tags.length > 0 ? tags.join('') : '<span class="tag" style="color: var(--muted);">无 EXIF 信息</span>';
     }
     lightbox.classList.add('open');
     lightbox.setAttribute('aria-hidden', 'false');
@@ -954,7 +979,17 @@ function getDistance(lat1, lng1, lat2, lng2) {
 
 // 地图服务配置
 const mapTileProviders = {
-  // 国际地图服务（默认）
+  // Mapbox 地图服务
+  mapbox: {
+    url: 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
+    attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    id: 'mapbox/dark-v10',
+    accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw',
+    maxZoom: 18,
+    tileSize: 512,
+    zoomOffset: -1
+  },
+  // 国际地图服务（备用）
   international: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -1012,13 +1047,26 @@ async function detectUserLocation() {
 
 // 添加地图图层
 function addMapTileLayer(providerKey) {
-  const provider = mapTileProviders[providerKey] || mapTileProviders.international;
+  const provider = mapTileProviders[providerKey] || mapTileProviders.mapbox;
   
-  return L.tileLayer(provider.url, {
-    attribution: provider.attribution,
-    subdomains: provider.subdomains,
-    maxZoom: provider.maxZoom
-  });
+  if (providerKey === 'mapbox' || !providerKey) {
+    // 使用 Mapbox
+    return L.tileLayer(provider.url, {
+      attribution: provider.attribution,
+      id: provider.id,
+      accessToken: provider.accessToken,
+      maxZoom: provider.maxZoom,
+      tileSize: provider.tileSize,
+      zoomOffset: provider.zoomOffset
+    });
+  } else {
+    // 使用其他服务
+    return L.tileLayer(provider.url, {
+      attribution: provider.attribution,
+      subdomains: provider.subdomains,
+      maxZoom: provider.maxZoom
+    });
+  }
 }
 
 // 初始化地图
@@ -1042,19 +1090,18 @@ async function initPhotoMap() {
       scrollWheelZoom: true
     }).setView([35.0, 105.0], 4);
     
-    // 检测用户位置并选择合适的地图服务
-    const mapProvider = await detectUserLocation();
-    const tileLayer = addMapTileLayer(mapProvider);
+    // 使用 Mapbox 地图服务
+    const tileLayer = addMapTileLayer('mapbox');
     tileLayer.addTo(photoMap);
     
-    // 如果主要服务失败，尝试备用服务
+    // 如果 Mapbox 失败，尝试备用服务
     let errorCount = 0;
     tileLayer.on('tileerror', function() {
       errorCount++;
       // 如果错误次数超过3次，切换到备用服务
-      if (errorCount >= 3 && mapProvider === 'international') {
-        console.warn('Primary map service failed, trying alternative...');
-        const altLayer = addMapTileLayer('internationalAlt');
+      if (errorCount >= 3) {
+        console.warn('Mapbox failed, trying alternative...');
+        const altLayer = addMapTileLayer('international');
         altLayer.addTo(photoMap);
         photoMap.removeLayer(tileLayer);
       }
@@ -1278,38 +1325,84 @@ function createMapPopupContent(locationName, items, centerCoords) {
     const exif = item.exif || {};
     const thumbnailUrl = getThumbnailUrl(item.src, 300);
     const originalUrl = item.originalSrc || getOriginalUrl(item.src);
+    const imageTitle = item.alt || '未命名';
     
-    // EXIF信息
-    const exifInfo = [];
-    if (exif.camera) {
-      const cameraName = String(exif.camera).trim();
-      const logoHtml = renderCameraBrandLogo(cameraName);
-      exifInfo.push(`${logoHtml}${escapeHtml(cameraName)}`);
+    // 构建信息表格
+    let infoRows = [];
+    
+    // 作品标题
+    infoRows.push(`
+      <tr class="map-popup-info-row">
+        <td class="map-popup-info-label">作品标题</td>
+        <td class="map-popup-info-value">${escapeHtml(imageTitle)}</td>
+      </tr>
+    `);
+    
+    // 相机和镜头
+    if (exif.camera || exif.lens) {
+      let cameraLens = '';
+      if (exif.camera) {
+        const cameraName = String(exif.camera).trim();
+        const logoHtml = renderCameraBrandLogo(cameraName);
+        cameraLens = `${logoHtml}${escapeHtml(cameraName)}`;
+      }
+      if (exif.lens) {
+        if (cameraLens) cameraLens += '<br>';
+        cameraLens += escapeHtml(String(exif.lens).trim());
+      }
+      if (cameraLens) {
+        infoRows.push(`
+          <tr class="map-popup-info-row">
+            <td class="map-popup-info-label">相机 / 镜头</td>
+            <td class="map-popup-info-value">${cameraLens}</td>
+          </tr>
+        `);
+      }
     }
-    if (exif.lens) exifInfo.push(`🔭 ${escapeHtml(String(exif.lens).trim())}`);
-    const tech = [];
-    if (exif.focal) tech.push(String(exif.focal).trim());
-    // 支持 aperture 和 f 两种字段名
+    
+    // 曝光设置
+    const exposure = [];
+    if (exif.iso) {
+      exposure.push(`ISO ${escapeHtml(String(exif.iso).trim())}`);
+    }
     if (exif.f !== undefined && exif.f !== null) {
-      tech.push(`f/${exif.f}`);
+      exposure.push(`f/${escapeHtml(String(exif.f).trim())}`);
     } else if (exif.aperture !== undefined && exif.aperture !== null) {
-      tech.push(`f/${exif.aperture}`);
+      const aperture = String(exif.aperture).trim();
+      if (aperture.startsWith('f/')) {
+        exposure.push(escapeHtml(aperture));
+      } else {
+        exposure.push(`f/${escapeHtml(aperture)}`);
+      }
     }
-    if (exif.shutter) tech.push(String(exif.shutter).trim());
-    if (typeof exif.iso !== 'undefined' && exif.iso !== null) {
-      tech.push(`ISO ${exif.iso}`);
+    if (exif.shutter) {
+      exposure.push(escapeHtml(String(exif.shutter).trim()));
     }
-    if (tech.length) exifInfo.push(`⚙️ ${tech.join(' · ')}`);
+    if (exif.focal) {
+      exposure.push(escapeHtml(String(exif.focal).trim()));
+    }
+    
+    if (exposure.length > 0) {
+      infoRows.push(`
+        <tr class="map-popup-info-row">
+          <td class="map-popup-info-label">曝光设置</td>
+          <td class="map-popup-info-value">${exposure.join(' | ')}</td>
+        </tr>
+      `);
+    }
     
     return `
       <div class="map-popup-photo-item" data-index="${idx}" data-src="${escapeAttr(originalUrl)}" data-original-src="${escapeAttr(originalUrl)}">
         <div class="map-popup-photo">
-          <img src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(item.alt || '')}" loading="lazy" />
+          <img src="${escapeAttr(thumbnailUrl)}" alt="${escapeHtml(imageTitle)}" loading="lazy" />
           ${sortedItems.length > 6 && idx === 5 ? `<div class="map-popup-photo-count">+${sortedItems.length - 6}</div>` : ''}
         </div>
         <div class="map-popup-photo-info">
-          <div class="map-popup-photo-title">${escapeHtml(item.alt || '未命名')}</div>
-          ${exifInfo.length > 0 ? `<div class="map-popup-photo-exif">${exifInfo.join(' • ')}</div>` : ''}
+          <table class="map-popup-info-table">
+            <tbody>
+              ${infoRows.join('')}
+            </tbody>
+          </table>
         </div>
       </div>
     `;
@@ -1317,7 +1410,7 @@ function createMapPopupContent(locationName, items, centerCoords) {
   
   return `
     <div class="map-popup-content">
-      <div class="map-popup-title">📍 ${escapeHtml(locationName)}</div>
+      <div class="map-popup-title">${escapeHtml(locationName)}</div>
       <div style="color: var(--muted); font-size: 12px; margin-bottom: 12px;">${sortedItems.length} 张照片</div>
       <div class="map-popup-photos-list">${photosHtml}</div>
     </div>
