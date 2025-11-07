@@ -374,6 +374,16 @@ a { color: inherit; text-decoration: none; }
   }
 }
 @media (max-width: 640px) {
+  #portfolio .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 16px;
+  }
+  .gallery {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 auto;
+  }
   :root {
     --card-width: 100%;
     --masonry-gap: 16px;
@@ -383,9 +393,21 @@ a { color: inherit; text-decoration: none; }
     left: 0 !important;
     top: auto !important;
     width: 100% !important;
+    margin: 0 auto 16px;
   }
   .gallery {
     height: auto !important;
+  }
+  .section-head {
+    padding: 0;
+    text-align: center;
+  }
+  .section-head h2 {
+    text-align: center;
+  }
+  .filters {
+    justify-content: center;
+    width: 100%;
   }
 }
 
