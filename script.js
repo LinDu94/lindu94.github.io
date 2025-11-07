@@ -355,10 +355,21 @@ tryRenderStoriesFromJSON();
 // 初始化地图（仅在map.html页面）
 function initMapWhenReady() {
   const mapContainer = document.getElementById('photoMap');
-  if (!mapContainer) return;
+  if (!mapContainer) {
+    // 不在地图页面，直接返回
+    return;
+  }
+  
+  // 确保容器有高度
+  if (mapContainer.offsetHeight === 0) {
+    console.warn('Map container has no height, waiting...');
+    setTimeout(initMapWhenReady, 200);
+    return;
+  }
   
   // 检查 Leaflet 是否已加载
   if (typeof L !== 'undefined' && L.map) {
+    console.log('Initializing map...');
     initPhotoMap();
   } else {
     // 如果还没加载，等待一下再试（最多等待5秒）
@@ -368,10 +379,16 @@ function initMapWhenReady() {
       attempts++;
       if (typeof L !== 'undefined' && L.map) {
         clearInterval(checkInterval);
+        console.log('Leaflet.js loaded, initializing map...');
         initPhotoMap();
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        console.error('Leaflet.js failed to load');
+        console.error('Leaflet.js failed to load after 5 seconds');
+        // 显示错误提示
+        const mapContainer = document.getElementById('photoMap');
+        if (mapContainer) {
+          mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted);">地图加载失败，请刷新页面重试。</div>';
+        }
       }
     }, 100);
   }
@@ -381,11 +398,11 @@ function initMapWhenReady() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     // 再等待一下确保 Leaflet 已加载
-    setTimeout(initMapWhenReady, 100);
+    setTimeout(initMapWhenReady, 200);
   });
 } else {
   // 如果文档已加载，等待一下确保 Leaflet 已加载
-  setTimeout(initMapWhenReady, 100);
+  setTimeout(initMapWhenReady, 200);
 }
 
 function initLightboxIfPresent() {
@@ -770,48 +787,69 @@ function addMapTileLayer(providerKey) {
 // 初始化地图
 async function initPhotoMap() {
   const mapContainer = document.getElementById('photoMap');
-  if (!mapContainer || typeof L === 'undefined') return;
-  
-  // 获取画廊数据
-  try {
-    const res = await fetch('./data/gallery.json');
-    if (!res.ok) return;
-    galleryItems = await res.json();
-    if (!Array.isArray(galleryItems) || galleryItems.length === 0) return;
-  } catch (_) {
+  if (!mapContainer) {
+    console.warn('Map container not found');
     return;
   }
   
-  // 初始化地图（默认中心点：中国）
-  photoMap = L.map('photoMap', {
-    zoomControl: true,
-    scrollWheelZoom: true
-  }).setView([35.0, 105.0], 4);
+  if (typeof L === 'undefined' || !L.map) {
+    console.error('Leaflet.js is not loaded');
+    return;
+  }
   
-  // 检测用户位置并选择合适的地图服务
-  const mapProvider = await detectUserLocation();
-  const tileLayer = addMapTileLayer(mapProvider);
-  tileLayer.addTo(photoMap);
+  // 先初始化地图，即使没有数据也要显示地图
+  try {
+    // 初始化地图（默认中心点：中国）
+    photoMap = L.map('photoMap', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([35.0, 105.0], 4);
+    
+    // 检测用户位置并选择合适的地图服务
+    const mapProvider = await detectUserLocation();
+    const tileLayer = addMapTileLayer(mapProvider);
+    tileLayer.addTo(photoMap);
+    
+    // 如果主要服务失败，尝试备用服务
+    let errorCount = 0;
+    tileLayer.on('tileerror', function() {
+      errorCount++;
+      // 如果错误次数超过3次，切换到备用服务
+      if (errorCount >= 3 && mapProvider === 'international') {
+        console.warn('Primary map service failed, trying alternative...');
+        const altLayer = addMapTileLayer('internationalAlt');
+        altLayer.addTo(photoMap);
+        photoMap.removeLayer(tileLayer);
+      }
+    });
+    
+    // 确保地图正确渲染（处理可能的尺寸问题）
+    setTimeout(() => {
+      if (photoMap) {
+        photoMap.invalidateSize();
+      }
+    }, 100);
+  } catch (error) {
+    console.error('Failed to initialize map:', error);
+    return;
+  }
   
-  // 如果主要服务失败，尝试备用服务
-  let errorCount = 0;
-  tileLayer.on('tileerror', function() {
-    errorCount++;
-    // 如果错误次数超过3次，切换到备用服务
-    if (errorCount >= 3 && mapProvider === 'international') {
-      console.warn('Primary map service failed, trying alternative...');
-      const altLayer = addMapTileLayer('internationalAlt');
-      altLayer.addTo(photoMap);
-      photoMap.removeLayer(tileLayer);
+  // 获取画廊数据（即使失败也要显示地图）
+  try {
+    const res = await fetch('./data/gallery.json');
+    if (!res.ok) {
+      console.warn('Failed to load gallery data');
+      return;
     }
-  });
-  
-  // 确保地图正确渲染（处理可能的尺寸问题）
-  setTimeout(() => {
-    if (photoMap) {
-      photoMap.invalidateSize();
+    galleryItems = await res.json();
+    if (!Array.isArray(galleryItems) || galleryItems.length === 0) {
+      console.warn('No gallery items found');
+      return;
     }
-  }, 100);
+  } catch (error) {
+    console.warn('Error loading gallery data:', error);
+    return;
+  }
   
   // 处理所有图片的位置（先显示已有坐标的，然后异步加载需要地理编码的）
   const locationGroups = new Map(); // key: "lat,lng", value: {coords, items, locationName}
