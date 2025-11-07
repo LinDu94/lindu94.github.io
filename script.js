@@ -30,12 +30,20 @@ setActiveNav();
 // 过滤器
 let filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
 let cards = Array.from(document.querySelectorAll('.gallery .card'));
+let currentFilter = 'all';
+
 function applyFilter(category) {
+  currentFilter = category;
   cards.forEach((card) => {
     const match = category === 'all' || card.dataset.category === category;
     card.style.display = match ? '' : 'none';
   });
+  // 筛选后重新布局
+  requestAnimationFrame(() => {
+    layoutMasonry();
+  });
 }
+
 function bindFilters() {
   filterButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -56,6 +64,82 @@ function shouldUseFolderScan() {
   return location.protocol === 'http:'; // 本地 http 服务可用
 }
 
+// 全局变量：存储所有图片数据和当前状态
+let allGalleryItems = [];
+let currentRenderedCount = 0;
+let isLoadingMore = false;
+const INITIAL_LOAD_COUNT = 30; // 初始加载数量
+const LOAD_MORE_COUNT = 20; // 每次加载更多时的数量
+
+// 渲染指定范围的图片
+function renderGalleryItems(items, startIndex, endIndex) {
+  const galleryEl = document.getElementById('gallery');
+  if (!galleryEl) return;
+  
+  const itemsToRender = items.slice(startIndex, endIndex);
+  const html = itemsToRender.map(renderCard).join('');
+  
+  if (startIndex === 0) {
+    // 首次渲染，替换所有内容
+    galleryEl.innerHTML = html;
+  } else {
+    // 追加渲染
+    galleryEl.insertAdjacentHTML('beforeend', html);
+  }
+  
+  // 更新卡片列表
+  cards = Array.from(document.querySelectorAll('.gallery .card'));
+  
+  // 重新绑定筛选和灯箱事件
+  filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
+  bindFilters();
+  initLightboxIfPresent();
+  
+  // 更新瀑布流布局
+  requestAnimationFrame(() => {
+    layoutMasonry();
+  });
+}
+
+// 加载更多图片
+function loadMoreItems() {
+  if (isLoadingMore) return;
+  if (currentRenderedCount >= allGalleryItems.length) return;
+  
+  isLoadingMore = true;
+  const nextCount = Math.min(currentRenderedCount + LOAD_MORE_COUNT, allGalleryItems.length);
+  
+  // 渲染新图片
+  renderGalleryItems(allGalleryItems, currentRenderedCount, nextCount);
+  currentRenderedCount = nextCount;
+  
+  isLoadingMore = false;
+  
+  // 如果已经加载完所有图片，移除滚动监听
+  if (currentRenderedCount >= allGalleryItems.length) {
+    window.removeEventListener('scroll', handleScroll);
+  }
+}
+
+// 滚动事件处理
+let scrollTimer = null;
+function handleScroll() {
+  if (scrollTimer) return;
+  
+  scrollTimer = setTimeout(() => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // 当滚动到距离底部200px时，加载更多
+    if (scrollTop + windowHeight >= documentHeight - 200) {
+      loadMoreItems();
+    }
+    
+    scrollTimer = null;
+  }, 100);
+}
+
 async function tryRenderGalleryFromJSON() {
   const galleryEl = document.getElementById('gallery');
   if (!galleryEl) return false;
@@ -70,21 +154,24 @@ async function tryRenderGalleryFromJSON() {
     const items = await res.json();
     if (!Array.isArray(items)) return false;
     
+    // 存储所有图片数据
+    allGalleryItems = items;
+    currentRenderedCount = 0;
+    
     // 调试：检查EXIF数据
     if (items.length > 0 && items[0].exif) {
       console.log('Sample EXIF data:', items[0].exif);
     }
     
-    galleryEl.innerHTML = items.map(renderCard).join('');
-    // 重新绑定筛选与卡片
-    filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
-    cards = Array.from(document.querySelectorAll('.gallery .card'));
-    bindFilters();
+    // 初始只渲染一部分
+    const initialCount = Math.min(INITIAL_LOAD_COUNT, items.length);
+    renderGalleryItems(items, 0, initialCount);
+    currentRenderedCount = initialCount;
     
-    // 立即应用初始瀑布流布局（使用估算高度）
-    requestAnimationFrame(() => {
-      layoutMasonry();
-    });
+    // 如果还有更多图片，添加滚动监听
+    if (currentRenderedCount < items.length) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }
     
     return true;
   } catch (_) {
@@ -361,10 +448,21 @@ async function tryRenderGalleryFromFolders(galleryEl) {
     const cityItems = await listImagesFromDirectory('./assets/works/city/', 'city');
     const items = [...natureItems, ...cityItems];
     if (!items.length) return false;
-    galleryEl.innerHTML = items.map(renderCard).join('');
-    filterButtons = Array.from(document.querySelectorAll('.filters .chip'));
-    cards = Array.from(document.querySelectorAll('.gallery .card'));
-    bindFilters();
+    
+    // 存储所有图片数据
+    allGalleryItems = items;
+    currentRenderedCount = 0;
+    
+    // 初始只渲染一部分
+    const initialCount = Math.min(INITIAL_LOAD_COUNT, items.length);
+    renderGalleryItems(items, 0, initialCount);
+    currentRenderedCount = initialCount;
+    
+    // 如果还有更多图片，添加滚动监听
+    if (currentRenderedCount < items.length) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
     return true;
   } catch (_) {
     return false;

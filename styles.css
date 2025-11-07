@@ -29,6 +29,12 @@ a { color: inherit; text-decoration: none; }
   margin: 0 auto;
 }
 
+/* 画廊部分使用更宽的容器 */
+#portfolio .container {
+  width: min(1800px, 96%) !important;
+  max-width: 1800px !important;
+}
+
 /* 头部 */
 .site-header {
   position: sticky;
@@ -263,14 +269,16 @@ a { color: inherit; text-decoration: none; }
 
 /* 作品网格 - 瀑布流布局 */
 :root {
-  --card-width: 240px;
-  --masonry-gap: 20px;
+  --card-width: 320px;
+  --masonry-gap: 24px;
 }
 
 .gallery { 
   position: relative;
   width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
+  padding: 0 20px;
 }
 .card { 
   background: transparent; 
@@ -356,9 +364,13 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 1024px) {
+  .gallery {
+    max-width: 100%;
+    padding: 0 16px;
+  }
   :root {
-    --card-width: 220px;
-    --masonry-gap: 18px;
+    --card-width: 280px;
+    --masonry-gap: 20px;
   }
 }
 @media (max-width: 640px) {
