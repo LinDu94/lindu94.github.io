@@ -142,6 +142,47 @@
     "shutter": "1/8000s",
     "focal": "12.29mm"
   }
-} 
-
+} ,
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1763100827884_幽渊曳縠之舟.jpg",
+  "alt": "幽渊曳縠之舟",
+  "caption": "",
+  "location": "N29°51' 48.53\" E 118°24' 36.00\"  安徽歙县·中国",
+  "exif": {
+    "camera": "Hasselblad L3D-100c ",
+    "iso": 800,
+    "f": 2,
+    "shutter": "1/15s",
+    "focal": "28mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1763100851983_雾霭笼村之晨.jpg",
+  "alt": "雾霭笼村之晨",
+  "caption": "",
+  "location": "N30°11'48\" E 117°38'50\"  安徽卢村·中国",
+  "exif": {
+    "camera": "Hasselblad L3D-100c ",
+    "iso": 400,
+    "f": 2,
+    "shutter": "1/100s",
+    "focal": "28mm"
+  }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1763100885979_恩和雪乡.jpg",
+  "alt": "恩和雪乡",
+  "caption": "",
+  "location": "N50°49'8.4\" E 119°54'39.6\"  呼伦贝尔恩和·中国",
+  "exif": {
+    "camera": "Dji FC8482",
+    "iso": 400,
+    "f": 1.7,
+    "shutter": "1/730s",
+    "focal": "6.72mm"
+  }
+}
 ]
