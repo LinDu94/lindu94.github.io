@@ -128,6 +128,20 @@
     "shutter": "1/8000s",
     "focal": "12.29mm"
   }
-}
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1763098920055_阶梯大楼.jpg",
+  "alt": "重庆动漫世界",
+  "caption": "",
+  "location": "N29° 32' 48\" E106° 33' 10\"  重庆渝中区·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 130,
+    "f": 2.8,
+    "shutter": "1/8000s",
+    "focal": "12.29mm"
+  }
+} 
 
 ]
