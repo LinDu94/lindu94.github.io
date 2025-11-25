@@ -178,11 +178,67 @@
   "caption": "",
   "location": "N50°49'8.4\" E 119°54'39.6\"  呼伦贝尔恩和·中国",
   "exif": {
-    "camera": "Dji FC8482",
+    "camera": "DJI FC8482",
     "iso": 400,
     "f": 1.7,
     "shutter": "1/730s",
     "focal": "6.72mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764051249928_李梓寒__The_35th_Anniversary_of_the_Development_and_Opening-up_of_Shanghai_Pudong.jpeg",
+  "alt": "浦江曳彩之隅",
+  "caption": "",
+  "location": "N31°14'26\" E 121°28'21\"  上海·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 3200,
+    "f": 5,
+    "shutter": "1/15s",
+    "focal": "30mm"
+  }
+}, 
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764051252738_雾锁连城2.jpg",
+  "alt": "雾锁连城",
+  "caption": "",
+  "location": "N31°15'3.102\" E 121°28'24。552\"  上海·中国",
+  "exif": {
+    "camera": "DJI FC4370",
+    "iso": 200,
+    "f": 3.4,
+    "shutter": "1/3200s",
+    "focal": "30mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764051244396_雾锁连城1.jpg",
+  "alt": "晨霭鎏城之廓",
+  "caption": "",
+  "location": "N31°15'3.102\" E 121°28'24。552\"  上海·中国",
+  "exif": {
+    "camera": "DJI FC4382",
+    "iso": 200,
+    "f": 2.8,
+    "shutter": "1/5000s",
+    "focal": "19.35mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764051244845_黑云压城之时.jpg",
+  "alt": "黑云压城之时",
+  "caption": "",
+  "location": "N31°14'40.302\" E 121°29'6.249\"  上海·中国",
+  "exif": {
+    "camera": "Hasselblad L2D-20c ",
+    "iso": 400,
+    "f": 2.8,
+    "shutter": "1/15s",
+    "focal": "19.35mm"
   }
 }
 ]
