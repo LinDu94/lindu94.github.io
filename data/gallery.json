@@ -240,5 +240,75 @@
     "shutter": "1/15s",
     "focal": "19.35mm"
   }
+},
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1764053883307_山巅吹起的自由之风.jpg",
+  "alt": "山巅吹起的自由之风",
+  "caption": "",
+  "location": "N27° 41' 24\" E99° 07' 12\"  云南南极洛·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 64,
+    "f": 7.1,
+    "shutter": "1/400s",
+    "focal": "28mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764053882121_天马浴星河.jpg",
+  "alt": "天马浴星河",
+  "caption": "",
+  "location": "N43° 57' 39\" E119° 21' 48\"  内蒙古巴林左旗·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 3200,
+    "f": 2.8,
+    "shutter": "30s",
+    "focal": "11mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764053879931_蔷薇园银河.jpg",
+  "alt": "星野绛华凝夜",
+  "caption": "",
+  "location": "N31° 01' 30\" E121° 26' 20\"  上海交通大学·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 3200,
+    "f": 2.8,
+    "shutter": "30s",
+    "focal": "24mm"
+  }
+},
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764053878023_陆家嘴反曙暮辉.JPG",
+  "alt": "陆家嘴反曙暮辉",
+  "caption": "",
+  "location": "N31° 14' 48\" E121° 29' 04\"  上海·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 64,
+    "f": 11,
+    "shutter": "1/200",
+    "focal": "24mm"
+  }
+}, 
+{
+  "category": "city",
+  "src": "https://photo-art.pages.dev/file/1764053881027_陆家嘴晚霞火烧云.jpg",
+  "alt": "彩云映申城",
+  "caption": "",
+  "location": "N31° 13' 10\" E121° 30' 03\"  上海·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 64,
+    "f": 11,
+    "shutter": "1/200",
+    "focal": "24mm"
+  }
 }
 ]
