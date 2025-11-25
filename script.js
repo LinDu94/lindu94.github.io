@@ -34,14 +34,47 @@ let currentFilter = 'all';
 
 function applyFilter(category) {
   currentFilter = category;
-  cards.forEach((card) => {
-    const match = category === 'all' || card.dataset.category === category;
-    card.style.display = match ? '' : 'none';
-  });
-  // 筛选后重新布局
-  requestAnimationFrame(() => {
-    layoutMasonry();
-  });
+
+  // 若数据尚未加载完成，退回 DOM 隐藏逻辑以保证基本可用
+  if (!allGalleryItems.length) {
+    cards.forEach((card) => {
+      const match = category === 'all' || card.dataset.category === category;
+      card.style.display = match ? '' : 'none';
+    });
+    requestAnimationFrame(() => {
+      layoutMasonry();
+    });
+    return;
+  }
+
+  const galleryEl = document.getElementById('gallery');
+  if (!galleryEl) return;
+
+  const filteredItems = category === 'all'
+    ? allGalleryItems
+    : allGalleryItems.filter((item) => item.category === category);
+
+  activeGalleryItems = filteredItems;
+  currentRenderedCount = 0;
+  isLoadingMore = false;
+
+  window.removeEventListener('scroll', handleScroll);
+
+  const initialCount = category === 'all'
+    ? Math.min(INITIAL_LOAD_COUNT, filteredItems.length)
+    : filteredItems.length;
+
+  renderGalleryItems(filteredItems, 0, initialCount);
+  currentRenderedCount = initialCount;
+
+  if (category === 'all' && currentRenderedCount < filteredItems.length) {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+  }
+
+  if (!filteredItems.length) {
+    galleryEl.innerHTML = '<div class="gallery-empty" style="padding:24px 0;color:var(--muted);text-align:center;">当前分类暂无作品。</div>';
+    galleryEl.style.height = 'auto';
+  }
 }
 
 function bindFilters() {
@@ -66,6 +99,7 @@ function shouldUseFolderScan() {
 
 // 全局变量：存储所有图片数据和当前状态
 let allGalleryItems = [];
+let activeGalleryItems = [];
 let currentRenderedCount = 0;
 let isLoadingMore = false;
 const INITIAL_LOAD_COUNT = 30; // 初始加载数量
@@ -104,19 +138,20 @@ function renderGalleryItems(items, startIndex, endIndex) {
 // 加载更多图片
 function loadMoreItems() {
   if (isLoadingMore) return;
-  if (currentRenderedCount >= allGalleryItems.length) return;
+  if (currentFilter !== 'all') return;
+  if (currentRenderedCount >= activeGalleryItems.length) return;
   
   isLoadingMore = true;
-  const nextCount = Math.min(currentRenderedCount + LOAD_MORE_COUNT, allGalleryItems.length);
+  const nextCount = Math.min(currentRenderedCount + LOAD_MORE_COUNT, activeGalleryItems.length);
   
   // 渲染新图片
-  renderGalleryItems(allGalleryItems, currentRenderedCount, nextCount);
+  renderGalleryItems(activeGalleryItems, currentRenderedCount, nextCount);
   currentRenderedCount = nextCount;
   
   isLoadingMore = false;
   
   // 如果已经加载完所有图片，移除滚动监听
-  if (currentRenderedCount >= allGalleryItems.length) {
+  if (currentRenderedCount >= activeGalleryItems.length) {
     window.removeEventListener('scroll', handleScroll);
   }
 }
@@ -156,6 +191,7 @@ async function tryRenderGalleryFromJSON() {
     
     // 存储所有图片数据
     allGalleryItems = items;
+    activeGalleryItems = items;
     currentRenderedCount = 0;
     
     // 调试：检查EXIF数据
@@ -165,7 +201,7 @@ async function tryRenderGalleryFromJSON() {
     
     // 初始只渲染一部分
     const initialCount = Math.min(INITIAL_LOAD_COUNT, items.length);
-    renderGalleryItems(items, 0, initialCount);
+    renderGalleryItems(activeGalleryItems, 0, initialCount);
     currentRenderedCount = initialCount;
     
     // 如果还有更多图片，添加滚动监听
@@ -291,6 +327,12 @@ function layoutMasonry(specificCard = null) {
   
   const allCards = Array.from(gallery.querySelectorAll('.card'));
   if (allCards.length === 0) return;
+
+  const visibleCards = allCards.filter(card => card.style.display !== 'none');
+  if (!visibleCards.length) {
+    gallery.style.height = '0px';
+    return;
+  }
   
   // 获取容器宽度和卡片宽度
   const containerWidth = gallery.offsetWidth;
@@ -301,14 +343,19 @@ function layoutMasonry(specificCard = null) {
   const columns = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
   
   // 如果指定了特定卡片，只更新该卡片及其后的卡片
-  let cardsToLayout = allCards;
+  let cardsToLayout = visibleCards;
   if (specificCard) {
-    const cardIndex = allCards.indexOf(specificCard);
+    if (specificCard.style.display === 'none') {
+      specificCard = null;
+    }
+  }
+  if (specificCard) {
+    const cardIndex = visibleCards.indexOf(specificCard);
     if (cardIndex >= 0) {
       // 从该卡片开始重新布局
-      cardsToLayout = allCards.slice(cardIndex);
+      cardsToLayout = visibleCards.slice(cardIndex);
       // 需要重新计算该卡片之前所有卡片的位置，以获取正确的列高度
-      const beforeCards = allCards.slice(0, cardIndex);
+      const beforeCards = visibleCards.slice(0, cardIndex);
       const columnHeights = new Array(columns).fill(0);
       
       beforeCards.forEach((card) => {
@@ -451,11 +498,12 @@ async function tryRenderGalleryFromFolders(galleryEl) {
     
     // 存储所有图片数据
     allGalleryItems = items;
+    activeGalleryItems = items;
     currentRenderedCount = 0;
     
     // 初始只渲染一部分
     const initialCount = Math.min(INITIAL_LOAD_COUNT, items.length);
-    renderGalleryItems(items, 0, initialCount);
+    renderGalleryItems(activeGalleryItems, 0, initialCount);
     currentRenderedCount = initialCount;
     
     // 如果还有更多图片，添加滚动监听
