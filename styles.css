@@ -651,6 +651,178 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+/* Try your luck 页面样式 */
+.luck-section {
+  padding: 80px 0;
+  min-height: calc(100vh - 200px);
+}
+
+.luck-container {
+  max-width: 1400px;
+}
+
+.luck-content {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.luck-image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-right: 20px;
+}
+
+.luck-image-wrapper img {
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.luck-info-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.luck-info {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.luck-info-title h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.luck-info-location,
+.luck-info-camera,
+.luck-info-exif {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.luck-info-location strong,
+.luck-info-camera strong,
+.luck-info-exif strong {
+  color: var(--text);
+  margin-right: 8px;
+}
+
+.luck-info-camera {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.luck-info-camera > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.luck-info-camera .camera-brand-logo {
+  width: 0.9em;
+  height: 0.9em;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: inline-block;
+  margin-right: 0.3em;
+  vertical-align: middle;
+  fill: currentColor;
+  color: var(--muted);
+}
+
+.luck-map-container {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.luck-map {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1b1e;
+}
+
+.luck-map .leaflet-container {
+  background: #1a1b1e;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.luck-loading,
+.luck-error,
+.luck-info-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px;
+}
+
+.luck-actions {
+  margin-top: 40px;
+}
+
+/* 响应式：小屏幕时信息移到下方 */
+@media (max-width: 1024px) {
+  .luck-content {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  
+  .luck-image-wrapper {
+    padding-right: 0;
+    justify-content: center;
+  }
+  
+  .luck-image-wrapper img {
+    max-height: 60vh;
+  }
+  
+  .luck-map {
+    height: 250px;
+  }
+}
+
+@media (max-width: 640px) {
+  .luck-section {
+    padding: 40px 0;
+  }
+  
+  .luck-content {
+    gap: 24px;
+  }
+  
+  .luck-info {
+    padding: 20px;
+  }
+  
+  .luck-info-title h3 {
+    font-size: 20px;
+  }
+  
+  .luck-map {
+    height: 200px;
+  }
+}
+
 /* 页脚 */
 .site-footer { border-top: 1px solid var(--border); background: #0f0f10; }
 .footer-inner { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; gap: 16px; }

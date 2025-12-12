@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>地图 - 林渡的阅世之旅</title>
-    <meta name="description" content="在地图上查看拍摄地点和作品分布。" />
-    <meta property="og:title" content="地图 - 林渡的阅世之旅" />
-    <meta property="og:description" content="在地图上查看拍摄地点和作品分布。" />
+    <title>Try your luck - 林渡的阅世之旅</title>
+    <meta name="description" content="随机探索一张作品，发现未知的惊喜。" />
+    <meta property="og:title" content="Try your luck - 林渡的阅世之旅" />
+    <meta property="og:description" content="随机探索一张作品，发现未知的惊喜。" />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0f0f10" />
     <link rel="stylesheet" href="./styles.css" />
@@ -32,10 +32,25 @@
     </header>
 
     <main>
-      <section class="section map-page">
-        <div class="container">
-          <h2>Map</h2>
-          <div id="photoMap" class="photo-map-container map-page-container"></div>
+      <section class="section luck-section">
+        <div class="container luck-container">
+          <h2 style="text-align: center; margin-bottom: 40px;">Try your luck</h2>
+          
+          <div class="luck-content" id="luckContent">
+            <div class="luck-image-wrapper">
+              <img id="luckImage" src="" alt="" />
+            </div>
+            
+            <div class="luck-info-wrapper">
+              <div class="luck-info" id="luckInfo">
+                <div class="luck-loading">加载中...</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="luck-actions" style="text-align: center; margin-top: 40px;">
+            <button class="btn primary" id="tryAgainBtn" onclick="loadRandomImage()">再试一次</button>
+          </div>
         </div>
       </section>
     </main>
@@ -52,6 +67,12 @@
     </footer>
 
     <script src="./script.js"></script>
+    <script src="./luck.js"></script>
   </body>
 </html>
+
+
+
+
+
 
