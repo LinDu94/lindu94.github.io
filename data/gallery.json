@@ -310,5 +310,61 @@
     "shutter": "1/200",
     "focal": "24mm"
   }
+}, 
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1772505842655_雪峰凝霜映湖.jpg",
+  "alt": "雪峰凝霜映湖",
+  "caption": "",
+  "location": "N29° 16' 2.346\" E96° 50' 42.66\"  西藏·中国",
+  "exif": {
+    "camera": "Hasselblad L3D-100c ",
+    "iso": 160,
+    "f": 2.8,
+    "shutter": "1/1600",
+    "focal": "14.45mm"
+  }
+}, 
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1772505850789_寒岭栖云之寂.jpg",
+  "alt": "寒岭栖云之寂",
+  "caption": "",
+  "location": "N29° 14' 16.5\" E96° 50' 23.466\"  西藏·中国",
+  "exif": {
+    "camera": "Hasselblad L3D-100c ",
+    "iso": 160,
+    "f": 2.8,
+    "shutter": "1/2000",
+    "focal": "14.45mm"
+  }
+}, 
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1772505861077_寒洞衔月之幽.jpg",
+  "alt": "寒洞衔月之幽",
+  "caption": "",
+  "location": "N29° 25' 23\" E96° 49' 59\"  西藏·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 64,
+    "f": 11,
+    "shutter": "30s",
+    "focal": "14.45mm"
+  }
+}, 
+{
+  "category": "nature",
+  "src": "https://photo-art.pages.dev/file/1772505853425_南迦巴瓦日照金山.jpg",
+  "alt": "南迦巴瓦日照金山",
+  "caption": "",
+  "location": "N29° 33' 41.964\" E94° 53' 19.842\"  西藏·中国",
+  "exif": {
+    "camera": "Nikon Z8 ",
+    "iso": 64,
+    "f": 11,
+    "shutter": "1/100s",
+    "focal": "14mm"
+  }
 }
 ]
