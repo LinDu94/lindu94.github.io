@@ -366,5 +366,19 @@
       "shutter": "1/1600s",
       "focal": "12.24mm"
     }
+  },
+  {
+    "category": "nature",
+    "src": "https://photo-art.pages.dev/file/1772517701825_霞影覆原之柱.jpg",
+    "alt": "穹壤裂光之界",
+    "caption": "",
+    "location": "N37° 23' 12.39\" E97° 20' 29.958\"  德令哈市·中国",
+    "exif": {
+      "camera": "DJI FC4382",
+      "iso": 160,
+      "f": 2.8,
+      "shutter": "1/100s",
+      "focal": "19.35mm"
+    }
   }
 ]
