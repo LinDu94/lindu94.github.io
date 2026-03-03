@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的图片展</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 图片网格布局 */
+        #image-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .img-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .img-card:hover {
+            transform: scale(1.03);
+        }
+
+        .img-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>111</h2>
+
+    <div id="image-container"></div>
+
+    <script>
+        // 1. 在这里直接放入你的图片 URL 数组
+        const imageUrls = [
+            "https://photo-art.pages.dev/file/1772521337466_截屏2026-03-03_15.02.06.png"
+            // 你可以继续往下粘贴更多链接...
+        ];
+
+        // 2. 获取容器
+        const container = document.getElementById('image-container');
+
+        // 3. 循环创建图片并插入
+        imageUrls.forEach(url => {
+            const card = document.createElement('div');
+            card.className = 'img-card';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = "网络图片";
+            
+            // 如果图片加载失败，显示占位图或错误提示
+            img.onerror = () => { img.src = "https://via.placeholder.com/400x300?text=Load+Error"; };
+
+            card.appendChild(img);
+            container.appendChild(card);
+        });
+    </script>
+
+</body>
+</html>
