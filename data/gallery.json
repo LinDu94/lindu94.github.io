@@ -1,6 +1,20 @@
 [
   {
     "category": "nature",
+    "src": "https://photo-art.pages.dev/file/1773025661856_孤峰临江无言.jpg",
+    "alt": "孤峰临江无言",
+    "caption": "",
+    "location": "N30° 5' 58.156\" E95° 3' 54.445\"  西藏·中国",
+    "exif": {
+      "camera": "DJI FC9284",
+      "iso": 160,
+      "f": 2.8,
+      "shutter": "1/4000s",
+      "focal": "19.35mm"
+    }
+  },
+  {
+    "category": "nature",
     "src": "https://photo-art.pages.dev/file/1772505853425_南迦巴瓦日照金山.jpg",
     "alt": "南迦巴瓦日照金山",
     "caption": "",
